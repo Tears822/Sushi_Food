@@ -1,0 +1,25 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="min-h-screen bg-gradient-to-br from-purple-600 to-amber-500 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
+        <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-amber-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <span class="text-white font-bold text-2xl">🔒</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
+        <p class="text-gray-600 mb-6">Please log in to access the admin dashboard.</p>
+        <a href="/login" 
+           class="inline-block w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-amber-500 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-amber-600 transition-all duration-200">
+            🔐 Go to Login
+        </a>
+    </div>
+</div>
+
+@code {
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("/login");
+    }
+} 

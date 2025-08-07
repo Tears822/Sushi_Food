@@ -1,0 +1,394 @@
+@page "/track-order"
+@page "/track/{orderNumber}"
+@using HidaSushi.Shared.Models
+@using HidaSushi.Client.Services
+@inject IApiService ApiService
+@inject NavigationManager Navigation
+@inherits FlowbitePage
+
+<PageTitle>Track Your Order - HIDA SUSHI</PageTitle>
+
+<!-- Hero Section with Image Background -->
+<section class="relative text-white py-16 lg:py-24 overflow-hidden" style="background-image: url('/images/header/header-background.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+    <!-- Subtle gradient overlay for text readability without blocking image -->
+    <div class="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30"></div>
+    
+    <!-- Animated Background Elements -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-1/4 left-1/4 w-3 h-3 bg-white bg-opacity-20 rounded-full animate-ping"></div>
+        <div class="absolute top-1/3 right-1/4 w-2 h-2 bg-amber-300 bg-opacity-30 rounded-full animate-pulse"></div>
+        <div class="absolute bottom-1/4 left-1/3 w-4 h-4 bg-purple-300 bg-opacity-20 rounded-full animate-bounce"></div>
+    </div>
+    
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="animate-fade-in-up">
+            <div class="text-6xl lg:text-8xl mb-6 transform hover:scale-110 transition-transform duration-300 text-shadow-lg">
+                📦
+            </div>
+            <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 font-poppins text-shadow-lg">
+                Track Your Order
+            </h1>
+            <p class="text-xl md:text-2xl text-white max-w-3xl mx-auto leading-relaxed text-shadow">
+                Follow your sushi journey from kitchen to your door
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Tracking Section with Modern Design -->
+<section class="py-16 lg:py-24 bg-gradient-to-br from-gray-50 to-purple-50 min-h-screen">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        @if (string.IsNullOrEmpty(OrderNumber))
+        {
+            <!-- Modern Order Number Input -->
+            <div class="bg-white rounded-3xl shadow-2xl p-8 lg:p-12 mb-8 backdrop-blur-lg border border-white border-opacity-20">
+                <div class="text-center mb-8">
+                    <div class="text-5xl mb-4 transform hover:scale-110 transition-transform duration-300">🔍</div>
+                    <h2 class="text-3xl lg:text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        Enter Your Order Number
+                    </h2>
+                    <p class="text-gray-600 text-lg">
+                        We'll show you real-time updates on your order status
+                    </p>
+                </div>
+                
+                <div class="max-w-lg mx-auto">
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Order Number</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <div class="text-2xl">🎫</div>
+                            </div>
+                            <input @bind="searchOrderNumber" 
+                                   @onkeypress="HandleKeyPress"
+                                   type="text" 
+                                   placeholder="e.g., HS202501081234567890" 
+                                   class="w-full pl-14 pr-4 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-purple-200 focus:border-purple-500 text-lg text-center font-mono bg-gray-50 hover:bg-white text-gray-900 placeholder-gray-500 transition-all duration-300 shadow-inner">
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2 text-center">
+                            Your order number was sent to your email
+                        </p>
+                    </div>
+                    
+                    <button @onclick="SearchOrder" 
+                            disabled="@(isLoading || string.IsNullOrWhiteSpace(searchOrderNumber))"
+                            class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-4 px-8 rounded-2xl text-lg transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl disabled:transform-none disabled:cursor-not-allowed">
+                        @if (isLoading)
+                        {
+                            <div class="flex items-center justify-center">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
+                                <span>Searching...</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="flex items-center justify-center">
+                                <div class="text-xl mr-2">🔍</div>
+                                <span>Track My Order</span>
+                            </div>
+                        }
+                    </button>
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-8 shadow-lg">
+                <div class="flex items-center">
+                    <div class="text-3xl mr-4">❌</div>
+                    <div>
+                        <h3 class="font-bold text-red-800 text-lg">Order Not Found</h3>
+                        <p class="text-red-700">@errorMessage</p>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (currentOrder != null)
+        {
+            <!-- Modern Order Details -->
+            <div class="bg-white rounded-3xl shadow-2xl overflow-hidden border border-white border-opacity-20">
+                
+                <!-- Order Header -->
+                <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-8">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center mb-2">
+                                <div class="text-3xl mr-3">🍣</div>
+                                <h2 class="text-2xl lg:text-3xl font-bold">Order #@currentOrder.OrderNumber</h2>
+                            </div>
+                            <p class="text-purple-100">Placed on @currentOrder.CreatedAt.ToString("MMM dd, yyyy 'at' HH:mm")</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-3xl lg:text-4xl font-bold">€@currentOrder.TotalAmount</p>
+                            <div class="flex items-center justify-end mt-2">
+                                <div class="text-xl mr-2">@(currentOrder.Type == OrderType.Delivery ? "🚗" : "🏪")</div>
+                                <p class="text-lg text-purple-100">@currentOrder.Type.ToString()</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-8">
+                    <!-- Modern Status Timeline -->
+                    <div class="mb-10">
+                        <h3 class="text-2xl font-bold mb-8 flex items-center">
+                            <div class="text-2xl mr-3">📍</div>
+                            Order Progress
+                        </h3>
+                        
+                        <div class="relative">
+                            <!-- Progress Line -->
+                            <div class="absolute left-8 top-12 bottom-0 w-1 bg-gradient-to-b from-purple-200 to-pink-200 rounded-full"></div>
+                            
+                            @foreach (var status in GetOrderStatuses())
+                            {
+                                var isActive = GetStatusIndex(currentOrder.Status) >= GetStatusIndex(status);
+                                var isCurrent = currentOrder.Status == status;
+                                
+                                <div class="relative flex items-start mb-8 last:mb-0">
+                                    <div class="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-all duration-300 @(isActive ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "bg-gray-100 text-gray-400") @(isCurrent ? "ring-4 ring-purple-200 shadow-2xl" : "")">
+                                        @if (isActive)
+                                        {
+                                            <div class="text-2xl">✅</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-2xl">⭕</div>
+                                        }
+                                    </div>
+                                    <div class="ml-6 flex-1 bg-white rounded-2xl p-6 shadow-md @(isCurrent ? "ring-2 ring-purple-200 bg-purple-50" : "")">
+                                        <h4 class="text-xl font-bold mb-2 @(isCurrent ? "text-purple-600" : isActive ? "text-gray-900" : "text-gray-500")">
+                                            @status.GetStatusDisplay()
+                                        </h4>
+                                        @if (isCurrent)
+                                        {
+                                            <div class="flex items-center mb-2">
+                                                <div class="text-lg mr-2">⚡</div>
+                                                <p class="text-purple-600 font-bold">Current Status</p>
+                                            </div>
+                                            @if (currentOrder.EstimatedDeliveryTime.HasValue)
+                                            {
+                                                <div class="flex items-center">
+                                                    <div class="text-lg mr-2">⏰</div>
+                                                    <p class="text-gray-600">Estimated: @currentOrder.EstimatedDeliveryTime.Value.ToString("HH:mm")</p>
+                                                </div>
+                                            }
+                                        }
+                                        else if (isActive)
+                                        {
+                                            <div class="flex items-center">
+                                                <div class="text-lg mr-2">✅</div>
+                                                <p class="text-green-600 font-semibold">Completed</p>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <p class="text-gray-500">Pending</p>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Modern Order Items -->
+                    <div class="border-t-2 border-gray-100 pt-8">
+                        <h3 class="text-2xl font-bold mb-6 flex items-center">
+                            <div class="text-2xl mr-3">🍱</div>
+                            Your Order
+                        </h3>
+                        <div class="space-y-4">
+                            @foreach (var item in currentOrder.Items)
+                            {
+                                <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 border border-purple-100">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1 flex items-center">
+                                            <div class="text-3xl mr-4">🍣</div>
+                                            <div>
+                                                @if (item.SushiRoll != null)
+                                                {
+                                                    <h4 class="font-bold text-lg text-gray-900">@item.SushiRoll.Name</h4>
+                                                    <p class="text-gray-600 mt-1">@item.SushiRoll.Description</p>
+                                                }
+                                                else if (item.CustomRoll != null)
+                                                {
+                                                    <h4 class="font-bold text-lg text-gray-900">@item.CustomRoll.Name</h4>
+                                                    <p class="text-gray-600 mt-1">Custom Roll Creation</p>
+                                                }
+                                                @if (!string.IsNullOrEmpty(item.Notes))
+                                                {
+                                                    <div class="flex items-center mt-2">
+                                                        <div class="text-sm mr-2">📝</div>
+                                                        <p class="text-sm text-purple-600 italic font-medium">@item.Notes</p>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="text-right ml-4">
+                                            <div class="bg-white rounded-xl px-3 py-2 shadow-md">
+                                                <p class="font-bold text-lg text-gray-900">x@item.Quantity</p>
+                                                <p class="text-purple-600 font-bold text-xl">€@(item.Price * item.Quantity)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Delivery Information -->
+                    @if (currentOrder.Type == OrderType.Delivery && !string.IsNullOrEmpty(currentOrder.DeliveryAddress))
+                    {
+                        <div class="border-t-2 border-gray-100 pt-8 mt-8">
+                            <h3 class="text-2xl font-bold mb-4 flex items-center">
+                                <div class="text-2xl mr-3">🏠</div>
+                                Delivery Address
+                            </h3>
+                            <div class="bg-blue-50 rounded-2xl p-6 border border-blue-200">
+                                <div class="flex items-center">
+                                    <div class="text-2xl mr-3">📍</div>
+                                    <p class="text-gray-800 text-lg font-medium">@currentOrder.DeliveryAddress</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Contact Information -->
+                    <div class="border-t-2 border-gray-100 pt-8 mt-8">
+                        <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-8 border border-purple-200">
+                            <h3 class="text-2xl font-bold mb-6 flex items-center">
+                                <div class="text-2xl mr-3">🆘</div>
+                                Need Help?
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-300">
+                                    <div class="flex items-center mb-3">
+                                        <div class="text-2xl mr-3">📧</div>
+                                        <p class="text-purple-600 font-bold text-lg">Email Support</p>
+                                    </div>
+                                    <p class="text-gray-700 font-medium">info@hidasushi.net</p>
+                                </div>
+                                <div class="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-300">
+                                    <div class="flex items-center mb-3">
+                                        <div class="text-2xl mr-3">📱</div>
+                                        <p class="text-purple-600 font-bold text-lg">Call Us</p>
+                                    </div>
+                                    <p class="text-gray-700 font-medium">+32 470 42 82 90</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modern Action Buttons -->
+            <div class="text-center mt-8">
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button @onclick="TrackAnotherOrder" class="inline-flex items-center justify-center px-8 py-4 bg-white text-purple-600 font-bold rounded-2xl border-2 border-purple-600 hover:bg-purple-50 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        <div class="text-xl mr-2">🔍</div>
+                        Track Another Order
+                    </button>
+                    <a href="/menu" class="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl">
+                        <div class="text-xl mr-2">🛒</div>
+                        Order Again
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter] public string? OrderNumber { get; set; }
+
+    private Order? currentOrder;
+    private string searchOrderNumber = "";
+    private string errorMessage = "";
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(OrderNumber))
+        {
+            searchOrderNumber = OrderNumber;
+            await SearchOrder();
+        }
+    }
+
+    private async Task SearchOrder()
+    {
+        if (string.IsNullOrWhiteSpace(searchOrderNumber))
+            return;
+
+        isLoading = true;
+        errorMessage = "";
+        
+        try
+        {
+            currentOrder = await ApiService.TrackOrderAsync(searchOrderNumber.Trim().ToUpper());
+            
+            if (currentOrder == null)
+            {
+                errorMessage = "Order not found. Please check your order number and try again.";
+            }
+        }
+        catch (Exception)
+        {
+            errorMessage = "Unable to track order at this time. Please try again later.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchOrder();
+        }
+    }
+
+    private void TrackAnotherOrder()
+    {
+        currentOrder = null;
+        searchOrderNumber = "";
+        errorMessage = "";
+        Navigation.NavigateTo("/track-order");
+    }
+
+    private List<OrderStatus> GetOrderStatuses()
+    {
+        if (currentOrder?.Type == OrderType.Pickup)
+        {
+            return new List<OrderStatus>
+            {
+                OrderStatus.Received,
+                OrderStatus.InPreparation,
+                OrderStatus.Ready,
+                OrderStatus.Completed
+            };
+        }
+        else
+        {
+            return new List<OrderStatus>
+            {
+                OrderStatus.Received,
+                OrderStatus.InPreparation,
+                OrderStatus.Ready,
+                OrderStatus.OutForDelivery,
+                OrderStatus.Completed
+            };
+        }
+    }
+
+    private int GetStatusIndex(OrderStatus status)
+    {
+        var statuses = GetOrderStatuses();
+        return statuses.IndexOf(status);
+    }
+} 

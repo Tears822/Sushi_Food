@@ -1,0 +1,212 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
+using HidaSushi.Server.Data;
+using HidaSushi.Server.Hubs;
+using HidaSushi.Shared.Models;
+
+namespace HidaSushi.Server.Services;
+
+public class OrderService
+{
+    private readonly HidaSushiDbContext _context;
+    private readonly IHubContext<OrderHub> _orderHub;
+    private readonly IHubContext<NotificationHub> _notificationHub;
+    private readonly ILogger<OrderService> _logger;
+
+    public OrderService(
+        HidaSushiDbContext context,
+        IHubContext<OrderHub> orderHub,
+        IHubContext<NotificationHub> notificationHub,
+        ILogger<OrderService> logger)
+    {
+        _context = context;
+        _orderHub = orderHub;
+        _notificationHub = notificationHub;
+        _logger = logger;
+    }
+
+    public async Task<Order> CreateOrderAsync(Order order)
+    {
+        // Generate order number
+        order.OrderNumber = GenerateOrderNumber();
+        order.CreatedAt = DateTime.UtcNow;
+        order.UpdatedAt = DateTime.UtcNow;
+        order.Status = OrderStatus.Received;
+
+        // Set estimated delivery time
+        order.EstimatedDeliveryTime = DateTime.UtcNow.AddMinutes(
+            order.Type == OrderType.Pickup ? 30 : 60);
+
+        // Calculate totals
+        CalculateOrderTotals(order);
+
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
+
+        // Add initial status history
+        await AddStatusHistoryAsync(order.Id, null, OrderStatus.Received.ToString(), "Order received");
+
+        // Send real-time updates
+        await _orderHub.Clients.Group("Admins").SendAsync("NewOrder", order);
+        if (order.CustomerId.HasValue)
+        {
+            await _orderHub.Clients.Group($"Customer_{order.CustomerId}").SendAsync("OrderCreated", order);
+        }
+
+        _logger.LogInformation("New order created: {OrderNumber} for {CustomerName}", order.OrderNumber, order.CustomerName);
+        return order;
+    }
+
+    public async Task<Order?> GetOrderByNumberAsync(string orderNumber)
+    {
+        return await _context.Orders
+            .Include(o => o.Items)
+                .ThenInclude(oi => oi.SushiRoll)
+            .Include(o => o.Items)
+                .ThenInclude(oi => oi.CustomRoll)
+            .Include(o => o.StatusHistory.OrderByDescending(h => h.CreatedAt))
+            .Include(o => o.Customer)
+            .FirstOrDefaultAsync(o => o.OrderNumber == orderNumber);
+    }
+
+    public async Task<List<Order>> GetOrdersAsync(OrderStatus? status = null, DateTime? fromDate = null)
+    {
+        var query = _context.Orders
+            .Include(o => o.Items)
+                .ThenInclude(oi => oi.SushiRoll)
+            .Include(o => o.Items)
+                .ThenInclude(oi => oi.CustomRoll)
+            .Include(o => o.Customer)
+            .AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(o => o.Status == status.Value);
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(o => o.CreatedAt >= fromDate.Value);
+        }
+
+        return await query.OrderByDescending(o => o.CreatedAt).ToListAsync();
+    }
+
+    public async Task<bool> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus, int? adminUserId = null, string notes = "")
+    {
+        var order = await _context.Orders
+            .Include(o => o.StatusHistory)
+            .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        if (order == null)
+        {
+            return false;
+        }
+
+        var previousStatus = order.Status;
+        order.Status = newStatus;
+        order.UpdatedAt = DateTime.UtcNow;
+
+        // Update timestamps based on status
+        switch (newStatus)
+        {
+            case OrderStatus.Accepted:
+                order.AcceptedAt = DateTime.UtcNow;
+                order.AcceptedBy = adminUserId;
+                break;
+            case OrderStatus.InPreparation:
+                order.PreparationStartedAt = DateTime.UtcNow;
+                break;
+            case OrderStatus.Ready:
+                order.PreparationCompletedAt = DateTime.UtcNow;
+                break;
+            case OrderStatus.Completed:
+                order.ActualDeliveryTime = DateTime.UtcNow;
+                break;
+        }
+
+        // Add status history
+        await AddStatusHistoryAsync(orderId, previousStatus.ToString(), newStatus.ToString(), notes, adminUserId);
+
+        await _context.SaveChangesAsync();
+
+        // Send real-time updates
+        await _orderHub.Clients.Group("Admins").SendAsync("OrderStatusUpdated", order);
+        await _orderHub.Clients.Group($"Order_{order.OrderNumber}").SendAsync("OrderStatusUpdated", order);
+        
+        if (order.CustomerId.HasValue)
+        {
+            await _orderHub.Clients.Group($"Customer_{order.CustomerId}").SendAsync("OrderStatusUpdated", order);
+        }
+
+        _logger.LogInformation("Order {OrderNumber} status updated from {PreviousStatus} to {NewStatus}", 
+            order.OrderNumber, previousStatus, newStatus);
+
+        return true;
+    }
+
+    public async Task<List<OrderStatusHistory>> GetOrderStatusHistoryAsync(int orderId)
+    {
+        return await _context.OrderStatusHistory
+            .Include(h => h.ChangedByUser)
+            .Where(h => h.OrderId == orderId)
+            .OrderByDescending(h => h.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<Order?> GetOrderByIdAsync(int orderId)
+    {
+        return await _context.Orders
+            .Include(o => o.Items)
+                .ThenInclude(oi => oi.SushiRoll)
+            .Include(o => o.Items)
+                .ThenInclude(oi => oi.CustomRoll)
+            .Include(o => o.StatusHistory.OrderByDescending(h => h.CreatedAt))
+            .Include(o => o.Customer)
+            .Include(o => o.AcceptedByUser)
+            .FirstOrDefaultAsync(o => o.Id == orderId);
+    }
+
+    private string GenerateOrderNumber()
+    {
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        var random = new Random().Next(1000, 9999);
+        return $"HS{timestamp}{random}";
+    }
+
+    private void CalculateOrderTotals(Order order)
+    {
+        order.SubtotalAmount = order.Items.Sum(item => item.Price);
+        
+        // Add delivery fee for delivery orders
+        if (order.Type == OrderType.Delivery)
+        {
+            order.DeliveryFee = 3.50m; // Fixed delivery fee
+        }
+        else
+        {
+            order.DeliveryFee = 0;
+        }
+
+        // Calculate tax (6% VAT for Belgium)
+        order.TaxAmount = (order.SubtotalAmount + order.DeliveryFee) * 0.06m;
+        
+        order.TotalAmount = order.SubtotalAmount + order.DeliveryFee + order.TaxAmount;
+    }
+
+    private async Task AddStatusHistoryAsync(int orderId, string? previousStatus, string newStatus, string notes = "", int? changedBy = null)
+    {
+        var history = new OrderStatusHistory
+        {
+            OrderId = orderId,
+            PreviousStatus = previousStatus ?? "",
+            NewStatus = newStatus,
+            ChangedBy = changedBy,
+            Notes = notes,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.OrderStatusHistory.Add(history);
+        await _context.SaveChangesAsync();
+    }
+} 

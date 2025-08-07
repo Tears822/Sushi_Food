@@ -1,0 +1,153 @@
+﻿<div class="top-row ps-3 navbar navbar-dark" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="">
+            <span class="me-2" style="font-size: 1.5rem;">🍣</span>
+            <div>
+                <div style="font-weight: 700; font-size: 1.1rem;">HIDA SUSHI</div>
+                <div style="font-size: 0.8rem; opacity: 0.9;">Admin Dashboard</div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        
+        <!-- Dashboard Section -->
+        <div class="nav-section-header px-3 py-2">
+            <small class="text-uppercase fw-bold text-muted">Dashboard</small>
+        </div>
+        
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="admin" Match="NavLinkMatch.All">
+                <span class="nav-icon">📊</span> Dashboard Overview
+            </NavLink>
+        </div>
+
+        <!-- Live Operations -->
+        <div class="nav-section-header px-3 py-2 mt-3">
+            <small class="text-uppercase fw-bold text-muted">Live Operations</small>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="live-orders">
+                <span class="nav-icon">🔴</span> Live Order Feed
+            </NavLink>
+        </div>
+
+        <!-- Menu Management -->
+        <div class="nav-section-header px-3 py-2 mt-3">
+            <small class="text-uppercase fw-bold text-muted">Menu Management</small>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="menu-management">
+                <span class="nav-icon">🍱</span> Manage Menu
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="ingredient-management">
+                <span class="nav-icon">🥬</span> Manage Ingredients
+            </NavLink>
+        </div>
+
+        <!-- Analytics & Reports -->
+        <div class="nav-section-header px-3 py-2 mt-3">
+            <small class="text-uppercase fw-bold text-muted">Analytics & Reports</small>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="analytics">
+                <span class="nav-icon">📈</span> Analytics
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="order-history">
+                <span class="nav-icon">📋</span> Order History
+            </NavLink>
+        </div>
+
+        <!-- User Management -->
+        <div class="nav-section-header px-3 py-2 mt-3">
+            <small class="text-uppercase fw-bold text-muted">Administration</small>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="user-management">
+                <span class="nav-icon">👥</span> User Management
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="settings">
+                <span class="nav-icon">⚙️</span> Settings
+            </NavLink>
+        </div>
+
+        <!-- Logout -->
+        <div class="nav-section-header px-3 py-2 mt-3">
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link text-danger" href="login">
+                <span class="nav-icon">🚪</span> Logout
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+<style>
+    .nav-section-header {
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .nav-section-header:first-child {
+        border-top: none;
+    }
+    
+    .nav-icon {
+        display: inline-block;
+        width: 20px;
+        text-align: center;
+        margin-right: 8px;
+        font-size: 14px;
+    }
+    
+    .nav-link {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        color: rgba(255,255,255,0.8) !important;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border-radius: 6px;
+        margin: 2px 8px;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(255,255,255,0.1);
+        color: white !important;
+        transform: translateX(4px);
+    }
+    
+    .nav-link.active {
+        background-color: rgba(255,255,255,0.2);
+        color: white !important;
+        font-weight: 600;
+    }
+    
+    .navbar-dark {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%) !important;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .nav-scrollable {
+        background: linear-gradient(180deg, #1e293b 0%, #334155 100%);
+        min-height: calc(100vh - 56px);
+    }
+</style>
+

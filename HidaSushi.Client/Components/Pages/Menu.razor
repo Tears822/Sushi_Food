@@ -1,0 +1,409 @@
+@page "/menu"
+@using HidaSushi.Shared.Models
+@using HidaSushi.Client.Services
+@inject IJSRuntime JSRuntime
+@inject ICartService CartService
+@inject IToastService ToastService
+@inject ILogger<Menu> Logger
+@inject IApiService ApiService
+@inherits FlowbitePage
+
+<PageTitle>Menu - HIDA SUSHI</PageTitle>
+
+<!-- Modern Hero Section with pure Tailwind CSS -->
+<section class="relative bg-gradient-to-br from-purple-600 via-pink-600 to-amber-500 text-white py-16 lg:py-24 overflow-hidden">
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 font-poppins">🍣 HIDA SUSHI Menu</h1>
+        <p class="text-xl md:text-2xl text-purple-100 max-w-3xl mx-auto leading-relaxed">
+            Signature Rolls with a Story • Build Your Own Creation
+        </p>
+    </div>
+</section>
+
+<!-- Modern Filters with pure Tailwind CSS - Fixed position for navbar -->
+<section class="py-6 md:py-8 bg-white sticky top-16 z-40 shadow-md border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap gap-2">
+            <button @onclick="SetFilterAll"
+                    class="@(currentFilter == "all" ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg" : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50") inline-flex items-center px-4 py-2 md:px-6 md:py-3 rounded-full font-medium text-sm md:text-base transition-all duration-300 transform hover:scale-105">
+                <svg class="w-4 h-4 md:w-5 md:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+                All Rolls
+            </button>
+            <button @onclick="SetFilterSignature"
+                    class="@(currentFilter == "signature" ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg" : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50") inline-flex items-center px-4 py-2 md:px-6 md:py-3 rounded-full font-medium text-sm md:text-base transition-all duration-300 transform hover:scale-105">
+                <svg class="w-4 h-4 md:w-5 md:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                </svg>
+                Signature
+            </button>
+            <button @onclick="SetFilterVeggie"
+                    class="@(currentFilter == "veggie" ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg" : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50") inline-flex items-center px-4 py-2 md:px-6 md:py-3 rounded-full font-medium text-sm md:text-base transition-all duration-300 transform hover:scale-105">
+                <svg class="w-4 h-4 md:w-5 md:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                </svg>
+                Vegetarian
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Menu Grid with consistent sizing and better image handling -->
+<section class="py-12 lg:py-16 bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 lg:gap-6">
+            @if (isLoading)
+            {
+                <div class="col-span-full text-center py-16">
+                    <div class="text-6xl mb-4">🍣</div>
+                    <p class="text-gray-500">Loading menu...</p>
+                </div>
+            }
+            else
+            {
+            @foreach (var roll in filteredRolls)
+            {
+                    <div class="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 overflow-hidden flex flex-col h-full">
+                        <div class="relative">
+                        @if (GetRollImage(roll.Name) != null)
+                        {
+                                <!-- Fixed aspect ratio for consistent image sizes -->
+                                <div class="aspect-square overflow-hidden">
+                                    <img src="@GetRollImage(roll.Name)" alt="@roll.Name" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                </div>
+                        }
+                        else
+                        {
+                                <!-- Fixed aspect ratio for emoji display -->
+                                <div class="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                                    <span class="text-4xl md:text-6xl group-hover:scale-110 transition-transform duration-300">@GetRollEmoji(roll)</span>
+                            </div>
+                        }
+                        
+                            <!-- Price Badge -->
+                            <div class="absolute top-4 right-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                                €@roll.Price.ToString("F2")
+                            </div>
+                        
+                            <!-- Vegetarian Badge -->
+                        @if (roll.IsVegetarian)
+                        {
+                                <div class="absolute top-4 left-4 bg-green-500 text-white p-2 rounded-full shadow-lg">
+                                    <svg class="w-3 h-3 md:w-4 md:h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L13.5 2.5L16.17 5.17C15.24 5.06 14.32 5 13.38 5C10.38 5 7.69 6.11 5.5 7.74L4.5 6.74L3 8.24L10 15.24V22H12V17H14V22H16V15.24L23 8.24L21.5 6.74L20.5 7.74C19.77 6.77 18.89 5.85 17.88 5.09L20.55 2.42L21 2L15 1V3L21 9Z"/>
+                                </svg>
+                            </div>
+                        }
+                    </div>
+                    
+                        <!-- Content area with consistent padding and flex-grow -->
+                        <div class="p-4 lg:p-6 flex flex-col flex-grow">
+                            <h3 class="font-bold text-lg lg:text-xl mb-2 text-gray-900 group-hover:text-purple-600 transition-colors">@roll.Name</h3>
+                            <p class="text-gray-600 mb-4 text-sm leading-relaxed flex-grow">@roll.Description</p>
+                        
+                            @if (roll.Ingredients?.Any() == true)
+                            {
+                                <div class="mb-4">
+                                    <p class="text-xs font-semibold text-gray-500 mb-2">INGREDIENTS:</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        @foreach (var ingredient in roll.Ingredients.Take(3))
+                            {
+                                            <span class="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">@ingredient</span>
+                            }
+                                        @if (roll.Ingredients.Count > 3)
+                            {
+                                            <span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">+@(roll.Ingredients.Count - 3) more</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (roll.Allergens?.Any() == true)
+                            {
+                                <div class="mb-4">
+                                    <p class="text-xs font-semibold text-red-500 mb-2">ALLERGENS:</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        @foreach (var allergen in roll.Allergens)
+                                        {
+                                            <span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">@allergen</span>
+                            }
+                        </div>
+                            </div>
+                        }
+                        
+                            <!-- Quantity Controls -->
+                            <div class="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-xl">
+                                <button @onclick="() => DecrementQuantity(roll.Id)" 
+                                        class="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center text-purple-600 hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled="@(GetQuantity(roll.Id) <= 1)">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                                    </svg>
+                                </button>
+                                
+                                <div class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-center font-bold text-lg text-purple-600 min-w-[60px]">
+                                    @GetQuantity(roll.Id)
+                                </div>
+                                
+                                <button @onclick="() => IncrementQuantity(roll.Id)" 
+                                        class="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center text-purple-600 hover:bg-purple-50 hover:border-purple-300 transition-all duration-200">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                    </svg>
+                                </button>
+                        </div>
+                        
+                            <!-- Button positioned at bottom with consistent styling -->
+                        <button @onclick="() => AddToCart(roll)" 
+                                    class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl mt-auto">
+                                <div class="flex items-center justify-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.8 9M7 13l1.8-9M7 13l5 5m0 0l5-5"/>
+                                </svg>
+                                    <span class="text-sm lg:text-base">Add to Cart - €@((roll.Price * GetQuantity(roll.Id)).ToString("F2"))</span>
+                                </div>
+                        </button>
+                    </div>
+                </div>
+                }
+            }
+        </div>
+        
+        @if (!filteredRolls.Any() && !isLoading)
+        {
+            <div class="text-center py-16">
+                <div class="text-6xl mb-4">🍣</div>
+                <h3 class="text-2xl font-bold text-gray-700 mb-2">No rolls found</h3>
+                <p class="text-gray-500">Try a different filter or browse all our rolls.</p>
+            </div>
+        }
+    </div>
+</section>
+
+<!-- Build Your Own Call-to-Action with pure Tailwind CSS -->
+<section class="py-16 bg-gradient-to-br from-purple-600 via-pink-600 to-amber-500 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl md:text-4xl font-bold mb-6 font-poppins">Want Something Custom?</h2>
+        <p class="text-xl mb-8 text-purple-100 max-w-2xl mx-auto">
+            Build your own sushi roll with our premium ingredients. Like building a pizza, but with sushi!
+        </p>
+        <a href="/build-roll" class="inline-flex items-center px-8 py-4 bg-white text-purple-600 hover:bg-gray-50 font-semibold rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
+            </svg>
+            <span class="text-sm lg:text-base">Build Your Own Roll</span>
+        </a>
+    </div>
+</section>
+
+@code {
+    private List<SushiRoll> allRolls = new();
+    private List<SushiRoll> filteredRolls = new();
+    private string currentFilter = "all";
+    private Dictionary<int, int> quantities = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            // Fetch menu from backend
+            allRolls = await ApiService.GetMenuAsync();
+            filteredRolls = allRolls;
+
+            // Initialize quantities
+            foreach (var roll in allRolls)
+            {
+                quantities[roll.Id] = 1;
+            }
+
+            Logger.LogInformation("Menu page initialized with {RollCount} rolls from backend", allRolls.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing Menu page");
+
+            // Fallback to default rolls if backend fails
+            allRolls = SignatureRolls.DefaultRolls;
+            filteredRolls = allRolls;
+            
+            foreach (var roll in allRolls)
+            {
+                quantities[roll.Id] = 1;
+            }
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetFilterAll()
+    {
+        try
+        {
+            currentFilter = "all";
+            isLoading = true;
+            StateHasChanged();
+
+            filteredRolls = await ApiService.GetMenuAsync();
+    }
+        catch (Exception ex)
+    {
+            Logger.LogError(ex, "Error filtering all rolls");
+            filteredRolls = allRolls;
+    }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetFilterSignature()
+    {
+        try
+        {
+            currentFilter = "signature";
+            isLoading = true;
+            StateHasChanged();
+
+            filteredRolls = await ApiService.GetSignatureRollsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error filtering signature rolls");
+            filteredRolls = allRolls.Where(r => !r.IsVegetarian).ToList();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetFilterVeggie()
+    {
+        try
+        {
+            currentFilter = "veggie";
+            isLoading = true;
+            StateHasChanged();
+
+            filteredRolls = await ApiService.GetVegetarianRollsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error filtering vegetarian rolls");
+            filteredRolls = allRolls.Where(r => r.IsVegetarian).ToList();
+    }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetRollEmoji(SushiRoll roll)
+    {
+        return roll.Name switch
+        {
+            var name when name.Contains("Taylor Swift") => "🐉",
+            var name when name.Contains("Blackbird") => "🐦",
+            var name when name.Contains("Beautiful") => "👑",
+            var name when name.Contains("Joker") => "🃏",
+            var name when name.Contains("Garden") => "🌱",
+            _ => "🍣"
+        };
+    }
+
+    private string? GetRollImage(string rollName)
+    {
+        return rollName switch
+        {
+            var name when name.Contains("Taylor Swift") => "/images/dishes/signature-roll-1.jpg",
+            var name when name.Contains("Blackbird") => "/images/dishes/signature-roll-2.jpg",
+            var name when name.Contains("Beautiful") => "/images/dishes/signature-roll-3.jpg",
+            var name when name.Contains("Joker") => "/images/dishes/signature-roll-4.jpg",
+            var name when name.Contains("Garden") => "/images/dishes/garden-veggie-roll.jpg",
+            _ => null
+        };
+    }
+
+    private int GetQuantity(int rollId)
+    {
+        try
+        {
+            return quantities.TryGetValue(rollId, out var quantity) ? quantity : 1;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error getting quantity for roll {RollId}", rollId);
+            return 1;
+        }
+    }
+
+    private void IncrementQuantity(int rollId)
+    {
+        try
+        {
+            if (quantities.ContainsKey(rollId))
+                quantities[rollId]++;
+            else
+                quantities[rollId] = 2;
+                
+            Logger.LogDebug("Incremented quantity for roll {RollId} to {Quantity}", rollId, quantities[rollId]);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error incrementing quantity for roll {RollId}", rollId);
+        }
+    }
+
+    private void DecrementQuantity(int rollId)
+    {
+        try
+        {
+            if (quantities.ContainsKey(rollId) && quantities[rollId] > 1)
+            {
+                quantities[rollId]--;
+                Logger.LogDebug("Decremented quantity for roll {RollId} to {Quantity}", rollId, quantities[rollId]);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error decrementing quantity for roll {RollId}", rollId);
+        }
+    }
+
+    private void AddToCart(SushiRoll roll)
+    {
+        try
+        {
+            if (roll == null)
+            {
+                Logger.LogWarning("Attempted to add null roll to cart");
+                return;
+            }
+
+            var quantity = GetQuantity(roll.Id);
+            CartService.AddItem(roll, quantity);
+            Logger.LogInformation("Successfully added {Quantity}x {RollName} to cart from menu page", quantity, roll.Name);
+            
+            ToastService.ShowSuccess(
+                "Added to Cart! 🛒", 
+                $"{quantity}x {roll.Name} - €{(roll.Price * quantity):F2}"
+            );
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding roll {RollName} to cart from menu", roll?.Name ?? "Unknown");
+            JSRuntime.InvokeVoidAsync("alert", "Sorry, there was an error adding the item to your cart. Please try again.");
+        }
+    }
+} 

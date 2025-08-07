@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HIDA SUSHI - Premium Sushi by Jonathan</title>
+    <base href="/" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="stylesheet" href="css/output.css" />
+    
+    <!-- Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
+    
+    <HidaSushi.Client:HeadOutlet />
+</head>
+
+<body>
+    <div id="app">
+        <div class="flex items-center justify-center h-screen bg-gradient-to-br from-purple-600 via-pink-600 to-amber-500">
+            <div class="text-center text-white">
+                <div class="text-6xl mb-4 animate-bounce">🍣</div>
+                <div class="text-2xl font-bold font-poppins">Loading HIDA SUSHI...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui" class="fixed bottom-0 left-0 right-0 bg-yellow-100 border-t border-yellow-200 p-4 text-center text-yellow-800 z-50">
+        An unhandled error has occurred.
+        <a href="" class="text-blue-600 hover:underline ml-2">Reload</a>
+        <a class="text-gray-600 hover:text-gray-800 ml-4 cursor-pointer">🗙</a>
+    </div>
+    
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js');</script>
+    
+    <!-- Custom Stripe integration -->
+    <script src="js/stripe.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <script src="js/flowbite-interop.js"></script>
+</body>
+
+</html>

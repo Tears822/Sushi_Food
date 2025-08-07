@@ -1,0 +1,185 @@
+@page "/login"
+@using HidaSushi.Shared.Models
+@using HidaSushi.Admin.Services
+@inject AuthenticationService AuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Admin Login - HIDA SUSHI</PageTitle>
+
+<div class="min-h-screen bg-gradient-to-br from-purple-600 to-amber-500 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-amber-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <span class="text-white font-bold text-2xl">🍣</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">HIDA SUSHI</h1>
+            <p class="text-gray-600">Admin Dashboard Login</p>
+        </div>
+
+        <!-- Server Status Indicator -->
+        <div class="mb-6 p-3 rounded-lg @(isServerConnected ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200")">
+            <div class="flex items-center justify-center">
+                <div class="w-3 h-3 rounded-full @(isServerConnected ? "bg-green-500" : "bg-red-500") mr-2"></div>
+                <span class="text-sm @(isServerConnected ? "text-green-700" : "text-red-700")">
+                    @(isServerConnected ? "🟢 Server Connected" : "🔴 Server Disconnected")
+                </span>
+                <button @onclick="CheckServerHealth" class="ml-2 text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 transition-colors">
+                    🔄
+                </button>
+            </div>
+            <div class="mt-2 text-center">
+                <button @onclick="TestConnection" class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">
+                    🧪 Test Connection
+                </button>
+            </div>
+        </div>
+
+        <!-- Login Form -->
+        <EditForm Model="loginRequest" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-center">
+                        <span class="text-red-600 text-lg mr-2">❌</span>
+                        <p class="text-red-800">@errorMessage</p>
+                    </div>
+                </div>
+            }
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                    <InputText @bind-Value="loginRequest.Username" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                               placeholder="Enter your username" />
+                    <ValidationMessage For="@(() => loginRequest.Username)" class="text-red-500 text-sm mt-1" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <InputText @bind-Value="loginRequest.Password" 
+                               type="password"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                               placeholder="Enter your password" />
+                    <ValidationMessage For="@(() => loginRequest.Password)" class="text-red-500 text-sm mt-1" />
+                </div>
+
+                <button type="submit" 
+                        disabled="@isLoggingIn"
+                        class="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-amber-500 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-amber-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    @if (isLoggingIn)
+                    {
+                        <span>🔄 Logging in...</span>
+                    }
+                    else
+                    {
+                        <span>🔐 Login</span>
+                    }
+                </button>
+            </div>
+        </EditForm>
+
+        <!-- Test Credentials -->
+        <div class="mt-8 bg-blue-50 rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-blue-800 mb-2">Test Credentials:</h3>
+            <div class="text-xs text-blue-700 space-y-1">
+                <p><strong>Admin:</strong> admin / HidaSushi2024!</p>
+                <p><strong>Chef:</strong> jonathan / ChefJonathan123!</p>
+                <p><strong>Kitchen:</strong> kitchen / Kitchen2024!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequest loginRequest = new();
+    private string errorMessage = "";
+    private bool isLoggingIn = false;
+    private bool isServerConnected = true; // Added for server status indicator
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Defer authentication check to avoid prerendering issues
+        await Task.Delay(1);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Add a small delay to ensure the app is fully loaded
+            await Task.Delay(2000);
+            // Check server connectivity
+            await CheckServerHealth();
+        }
+    }
+
+    private async Task CheckServerHealth()
+    {
+        try
+        {
+            isServerConnected = await AuthService.CheckServerHealthAsync();
+            StateHasChanged();
+        }
+        catch
+        {
+            isServerConnected = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task TestConnection()
+    {
+        try
+        {
+            var result = await AuthService.CheckServerHealthAsync();
+            await JSRuntime.InvokeVoidAsync("alert", result ? "✅ Server is connected!" : "❌ Server is not connected!");
+            isServerConnected = result;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"❌ Connection test failed: {ex.Message}");
+            isServerConnected = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        isLoggingIn = true;
+        errorMessage = "";
+
+        try
+        {
+            var loginResponse = await AuthService.LoginAsync(loginRequest);
+
+            if (loginResponse.Success)
+            {
+                // Show success message
+                await JSRuntime.InvokeVoidAsync("alert", $"Welcome, {loginRequest.Username}! Redirecting to admin dashboard...");
+                
+                // Redirect to admin dashboard
+                Navigation.NavigateTo("/admin");
+            }
+            else
+            {
+                errorMessage = loginResponse.Message ?? "Login failed. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Unable to connect to server. Please try again later.";
+            Console.WriteLine($"Login error: {ex.Message}");
+        }
+        finally
+        {
+            isLoggingIn = false;
+        }
+    }
+} 

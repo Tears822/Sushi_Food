@@ -1,0 +1,167 @@
+@using HidaSushi.Client.Services
+@inject IToastService ToastService
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<!-- Toast Container with wider notifications -->
+<div class="fixed top-20 right-4 z-50 space-y-4 pointer-events-none">
+    @foreach (var toast in activeToasts)
+    {
+        <div class="@GetToastClasses(toast.Type) @(toast.IsVisible ? "transform translate-x-0 opacity-100" : "transform translate-x-full opacity-0") transition-all duration-500 ease-in-out pointer-events-auto w-80 md:w-96">
+            <div class="flex items-start p-4 rounded-2xl shadow-2xl border backdrop-blur-lg">
+                <div class="flex-shrink-0 mr-3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-lg">
+                        @toast.Icon
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold text-sm mb-1">@toast.Title</div>
+                    <div class="text-sm opacity-90 break-words">@toast.Message</div>
+                </div>
+                <button @onclick="() => RemoveToast(toast.Id)" class="flex-shrink-0 ml-2 p-1 rounded-full hover:bg-white hover:bg-opacity-20 transition-colors duration-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<DisplayToastMessage> activeToasts = new();
+    private Dictionary<string, System.Threading.Timer> toastTimers = new();
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnToastShow += ShowToast;
+    }
+
+    public void Dispose()
+    {
+        ToastService.OnToastShow -= ShowToast;
+        
+        // Dispose all timers
+        foreach (var timer in toastTimers.Values)
+        {
+            timer?.Dispose();
+        }
+        toastTimers.Clear();
+    }
+
+    private async void ShowToast(Services.ToastMessage toast)
+    {
+        try
+        {
+            // Convert to display toast message
+            var displayToast = new DisplayToastMessage
+            {
+                Id = toast.Id,
+                Type = toast.Type,
+                Title = toast.Title,
+                Message = toast.Message,
+                Icon = toast.Icon,
+                Duration = toast.Duration,
+                CreatedAt = toast.CreatedAt,
+                IsVisible = false
+            };
+
+            // Add toast to list
+            activeToasts.Add(displayToast);
+            await InvokeAsync(StateHasChanged);
+
+            // Make visible after a small delay for animation
+            await Task.Delay(100);
+            displayToast.IsVisible = true;
+            await InvokeAsync(StateHasChanged);
+
+            // Set timer to auto-remove toast
+            var timer = new System.Threading.Timer(async _ => 
+            {
+                try
+                {
+                    await RemoveToastAsync(displayToast.Id);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error removing toast: {ex.Message}");
+                }
+            }, null, displayToast.Duration, Timeout.Infinite);
+            
+            toastTimers[displayToast.Id] = timer;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error showing toast: {ex.Message}");
+        }
+    }
+
+    private async Task RemoveToastAsync(string toastId)
+    {
+        try
+        {
+            await InvokeAsync(() => RemoveToast(toastId));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in RemoveToastAsync: {ex.Message}");
+        }
+    }
+
+    private void RemoveToast(string toastId)
+    {
+        try
+        {
+            var toast = activeToasts.FirstOrDefault(t => t.Id == toastId);
+            if (toast != null)
+            {
+                // Hide with animation
+                toast.IsVisible = false;
+                StateHasChanged();
+
+                // Remove from list after animation
+                _ = Task.Delay(500).ContinueWith(async _ => 
+                {
+                    try
+                    {
+                        await InvokeAsync(() =>
+                        {
+                            activeToasts.Remove(toast);
+                            if (toastTimers.TryGetValue(toastId, out var timer))
+                            {
+                                timer.Dispose();
+                                toastTimers.Remove(toastId);
+                            }
+                            StateHasChanged();
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error in delayed removal: {ex.Message}");
+                    }
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in RemoveToast: {ex.Message}");
+        }
+    }
+
+    private string GetToastClasses(ToastType toastType)
+    {
+        return toastType switch
+        {
+            ToastType.Success => "bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800",
+            ToastType.Error => "bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 text-red-800",
+            ToastType.Warning => "bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 text-yellow-800",
+            ToastType.Info => "bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-blue-800",
+            _ => "bg-white border border-gray-200 text-gray-800"
+        };
+    }
+
+    public class DisplayToastMessage : Services.ToastMessage
+    {
+        public bool IsVisible { get; set; } = false;
+    }
+} 
