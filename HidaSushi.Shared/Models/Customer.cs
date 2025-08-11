@@ -40,6 +40,47 @@ public class Customer
     public List<Order> Orders { get; set; } = new();
 }
 
+// Customer Registration Models
+public class CustomerRegistrationRequest
+{
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string? Address { get; set; }
+}
+
+public class CustomerRegistrationResult
+{
+    public bool Success { get; set; }
+    public int CustomerId { get; set; }
+    public string? Message { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public class CustomerUpdateRequest
+{
+    public string? FullName { get; set; }
+    public string? Phone { get; set; }
+    public string? Address { get; set; }
+}
+
+public class GuestOrderRequest
+{
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public string? Address { get; set; }
+}
+
+public class GuestOrderResult
+{
+    public bool Success { get; set; }
+    public int CustomerId { get; set; }
+    public string? Message { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
 public class CustomerAddress
 {
     public int Id { get; set; }

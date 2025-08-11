@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using HidaSushi.Server.Data;
 using HidaSushi.Shared.Models;
@@ -10,143 +11,84 @@ namespace HidaSushi.Server.Controllers;
 public class IngredientsController : ControllerBase
 {
     private readonly HidaSushiDbContext _context;
-    private readonly ILogger<IngredientsController> _logger;
 
-    public IngredientsController(HidaSushiDbContext context, ILogger<IngredientsController> logger)
+    public IngredientsController(HidaSushiDbContext context)
     {
         _context = context;
-        _logger = logger;
     }
 
     // GET: api/Ingredients
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<Ingredient>>> GetIngredients()
     {
-        try
-        {
-            return await _context.Ingredients
+        var list = await _context.Ingredients
+            .AsNoTracking()
                 .Where(i => i.IsAvailable)
                 .OrderBy(i => i.Category)
                 .ThenBy(i => i.Name)
                 .ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching ingredients");
-            return StatusCode(500, "Internal server error");
-        }
+        return Ok(list);
     }
 
-    // GET: api/Ingredients/category/Base
-    [HttpGet("category/{category}")]
-    public async Task<ActionResult<IEnumerable<Ingredient>>> GetIngredientsByCategory(IngredientCategory category)
+    // GET: api/Ingredients/all - For admin management
+    [HttpGet("all")]
+    [Authorize]
+    public async Task<ActionResult<IEnumerable<Ingredient>>> GetAllIngredients()
     {
-        try
+        var list = await _context.Ingredients
+            .AsNoTracking()
+            .OrderBy(i => i.Category)
+            .ThenBy(i => i.Name)
+            .ToListAsync();
+        return Ok(list);
+    }
+
+    // GET: api/Ingredients/category/{category}
+    [HttpGet("category/{category}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<Ingredient>>> GetIngredientsByCategory(string category)
+    {
+        if (!Enum.TryParse<IngredientCategory>(category, true, out var parsed))
         {
-            return await _context.Ingredients
-                .Where(i => i.Category == category && i.IsAvailable)
+            return BadRequest(new { message = "Invalid category" });
+        }
+
+        var list = await _context.Ingredients
+            .AsNoTracking()
+            .Where(i => i.Category == parsed && i.IsAvailable)
                 .OrderBy(i => i.Name)
                 .ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching ingredients by category {Category}", category);
-            return StatusCode(500, "Internal server error");
-        }
+        return Ok(list);
     }
 
     // GET: api/Ingredients/5
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<Ingredient>> GetIngredient(int id)
     {
-        try
-        {
-            var ingredient = await _context.Ingredients.FindAsync(id);
-
+        var ingredient = await _context.Ingredients.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id);
             if (ingredient == null)
             {
                 return NotFound();
             }
-
-            return ingredient;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching ingredient with id {Id}", id);
-            return StatusCode(500, "Internal server error");
-        }
+        return Ok(ingredient);
     }
 
-    // POST: api/Ingredients/calculate-price
-    [HttpPost("calculate-price")]
-    public async Task<ActionResult<decimal>> CalculateCustomRollPrice([FromBody] List<int> ingredientIds)
+    // POST: api/Ingredients
+    [HttpPost]
+    [Authorize]
+    public async Task<ActionResult<Ingredient>> CreateIngredient([FromBody] Ingredient ingredient)
     {
-        try
-        {
-            var ingredients = await _context.Ingredients
-                .Where(i => ingredientIds.Contains(i.Id))
-                .ToListAsync();
-
-            // Base price for custom roll
-            decimal basePrice = 15m; // Prime number base price
-
-            // Add additional costs for premium ingredients
-            decimal additionalCost = ingredients.Sum(i => i.AdditionalPrice);
-
-            var totalPrice = basePrice + additionalCost;
-
-            return Ok(totalPrice);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error calculating custom roll price");
-            return StatusCode(500, "Internal server error");
-        }
-    }
-
-    // POST: api/Ingredients/validate-combination
-    [HttpPost("validate-combination")]
-    public async Task<ActionResult<object>> ValidateCombination([FromBody] List<int> ingredientIds)
-    {
-        try
-        {
-            var ingredients = await _context.Ingredients
-                .Where(i => ingredientIds.Contains(i.Id))
-                .ToListAsync();
-
-            var validation = new
-            {
-                IsValid = true,
-                Warnings = new List<string>(),
-                Allergens = ingredients.SelectMany(i => i.Allergens).Distinct().ToList(),
-                TotalIngredients = ingredients.Count,
-                Categories = ingredients.GroupBy(i => i.Category)
-                    .ToDictionary(g => g.Key.ToString(), g => g.Count())
-            };
-
-            // Add warnings for unusual combinations
-            if (ingredients.Count(i => i.Category == IngredientCategory.Protein) > 3)
-            {
-                validation.Warnings.Add("This roll has many proteins. Consider reducing for better balance.");
-            }
-
-            if (!ingredients.Any(i => i.Category == IngredientCategory.Base))
-            {
-                validation.Warnings.Add("Consider adding a base (rice) for a traditional roll.");
-            }
-
-            return Ok(validation);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error validating ingredient combination");
-            return StatusCode(500, "Internal server error");
-        }
+        _context.Ingredients.Add(ingredient);
+        await _context.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetIngredient), new { id = ingredient.Id }, ingredient);
     }
 
     // PUT: api/Ingredients/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutIngredient(int id, Ingredient ingredient)
+    [Authorize]
+    public async Task<IActionResult> UpdateIngredient(int id, [FromBody] Ingredient ingredient)
     {
         if (id != ingredient.Id)
         {
@@ -161,7 +103,8 @@ public class IngredientsController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!IngredientExists(id))
+            var exists = await _context.Ingredients.AnyAsync(e => e.Id == id);
+            if (!exists)
             {
                 return NotFound();
             }
@@ -170,38 +113,31 @@ public class IngredientsController : ControllerBase
                 throw;
             }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating ingredient with id {Id}", id);
-            return StatusCode(500, "Internal server error");
-        }
 
         return NoContent();
     }
 
-    // POST: api/Ingredients
-    [HttpPost]
-    public async Task<ActionResult<Ingredient>> PostIngredient(Ingredient ingredient)
+    // DELETE: api/Ingredients/5
+    [HttpDelete("{id}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteIngredient(int id)
     {
-        try
+        var ingredient = await _context.Ingredients.FindAsync(id);
+        if (ingredient == null)
         {
-            _context.Ingredients.Add(ingredient);
-            await _context.SaveChangesAsync();
+            return NotFound();
+        }
 
-            return CreatedAtAction("GetIngredient", new { id = ingredient.Id }, ingredient);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating ingredient");
-            return StatusCode(500, "Internal server error");
-        }
+        _context.Ingredients.Remove(ingredient);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 
-    // PUT: api/Ingredients/5/availability
-    [HttpPut("{id}/availability")]
+    // PATCH: api/Ingredients/5/availability
+    [HttpPatch("{id}/availability")]
+    [Authorize]
     public async Task<IActionResult> ToggleAvailability(int id)
-    {
-        try
         {
             var ingredient = await _context.Ingredients.FindAsync(id);
             if (ingredient == null)
@@ -212,17 +148,28 @@ public class IngredientsController : ControllerBase
             ingredient.IsAvailable = !ingredient.IsAvailable;
             await _context.SaveChangesAsync();
 
-            return NoContent();
+        return Ok(new { IsAvailable = ingredient.IsAvailable });
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error toggling availability for ingredient {Id}", id);
-            return StatusCode(500, "Internal server error");
-        }
-    }
 
-    private bool IngredientExists(int id)
+    // POST: api/Ingredients/calculate-price
+    [HttpPost("calculate-price")]
+    [AllowAnonymous]
+    public async Task<ActionResult<object>> CalculatePrice([FromBody] List<int> ingredientIds)
     {
-        return _context.Ingredients.Any(e => e.Id == id);
+        var ingredients = await _context.Ingredients
+            .AsNoTracking()
+            .Where(i => ingredientIds.Contains(i.Id))
+            .ToListAsync();
+
+        var basePrice = 8.00m; // Base price for custom roll
+        var additionalPrice = ingredients.Sum(i => i.AdditionalPrice);
+
+        return Ok(new
+        {
+            BasePrice = basePrice,
+            AdditionalPrice = additionalPrice,
+            TotalPrice = basePrice + additionalPrice,
+            Ingredients = ingredients
+        });
     }
 } 

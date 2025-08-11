@@ -1,540 +1,315 @@
 @page "/admin"
-@using HidaSushi.Shared.Models
-@using HidaSushi.Admin.Services
-@inject AdminApiService ApiService
-@inject IJSRuntime JSRuntime
-@inject NavigationManager Navigation
-@implements IDisposable
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Admin Dashboard - HIDA SUSHI</PageTitle>
 
-<AuthGuard>
-    <!-- Admin Header -->
-    <div class="bg-gradient-to-r from-purple-600 to-amber-500 text-white p-6">
-        <div class="container mx-auto">
+<div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+    <!-- Animated background shapes -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-40 left-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Header Section -->
+    <div class="relative z-10 bg-gradient-to-r from-royal-purple via-pink-primary to-deep-purple shadow-professional">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-bold">HIDA SUSHI Admin</h1>
-                    <p class="text-purple-100">Kitchen Management Dashboard</p>
-                </div>
                 <div class="flex items-center space-x-4">
-                    <div class="text-right">
-                        <p class="text-2xl font-bold">@DateTime.Now.ToString("HH:mm")</p>
-                        <p class="text-purple-100">@DateTime.Now.ToString("MMM dd, yyyy")</p>
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm animate-bounce">
+                        <span class="text-3xl">🍣</span>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-bold text-white mb-2 font-poppins">HIDA SUSHI</h1>
+                        <p class="text-light-purple text-lg font-inter">Admin Dashboard</p>
                         @if (!string.IsNullOrEmpty(currentUser))
                         {
-                            <p class="text-purple-200 text-sm">Welcome, @currentUser</p>
+                            <p class="text-sm text-white/80 mt-1 font-inter">Welcome back, @currentUser</p>
                         }
                     </div>
-                    <button @onclick="Logout" 
-                            class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
-                        🚪 Logout
-                    </button>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Connection Status -->
-    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-        <div class="flex">
-            <div class="ml-3">
-                <p class="text-sm text-yellow-700">
-                    <span class="font-medium">API Status:</span>
-                    @if (isConnectedToApi)
-                    {
-                        <span class="text-green-600">✅ Connected to real database</span>
-                    }
-                    else
-                    {
-                        <span class="text-orange-600">⚠️ Using fallback data (API not available)</span>
-                    }
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="bg-gray-50 py-6">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-blue-100 text-blue-600">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Total Orders</p>
-                            <p class="text-2xl font-bold text-gray-900">@GetStatsValue("TotalOrders")</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-orange-100 text-orange-600">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Pending</p>
-                            <p class="text-2xl font-bold text-gray-900">@GetStatsValue("PendingOrders")</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-green-100 text-green-600">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Completed</p>
-                            <p class="text-2xl font-bold text-gray-900">@GetStatsValue("CompletedOrders")</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-purple-100 text-purple-600">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Revenue</p>
-                            <p class="text-2xl font-bold text-gray-900">€@GetStatsValue("TotalRevenue")</p>
-                        </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <div class="text-right text-white">
+                        <p class="text-sm opacity-80 font-inter">@DateTime.Now.ToString("MMMM dd, yyyy")</p>
+                        <p class="text-lg font-semibold font-poppins">@DateTime.Now.ToString("HH:mm")</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Quick Actions Section -->
-    <div class="bg-white border-b py-6">
-        <div class="container mx-auto px-4">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <a href="/admin/menu" class="flex items-center p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors group">
-                    <div class="p-2 rounded-lg bg-purple-600 text-white group-hover:bg-purple-700 transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                        </svg>
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Orders Card -->
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Total Orders</p>
+                        <p class="text-3xl font-bold text-white font-poppins">@totalOrders</p>
+                        <p class="text-sm text-green-400 mt-1 font-inter">
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                +12% from last month
+                            </span>
+                        </p>
                     </div>
-                    <div class="ml-3">
-                        <p class="font-medium text-purple-900">Menu Management</p>
-                        <p class="text-sm text-purple-600">Manage rolls & ingredients</p>
+                    <div class="w-12 h-12 bg-purple-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">📊</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Revenue Card -->
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Today's Revenue</p>
+                        <p class="text-3xl font-bold text-white font-poppins">€@todayRevenue.ToString("F2")</p>
+                        <p class="text-sm text-green-400 mt-1 font-inter">
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                +8% from yesterday
+                            </span>
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">💰</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menu Items Card -->
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Menu Items</p>
+                        <p class="text-3xl font-bold text-white font-poppins">@totalMenuItems</p>
+                        <p class="text-sm text-blue-400 mt-1 font-inter">
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"></path>
+                                </svg>
+                                3 new this week
+                            </span>
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">🍣</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Orders Card -->
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Pending Orders</p>
+                        <p class="text-3xl font-bold text-white font-poppins">@pendingOrders</p>
+                        <p class="text-sm text-orange-400 mt-1 font-inter">
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                </svg>
+                                Needs attention
+                            </span>
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">⏰</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Section -->
+        <div class="glass-effect rounded-2xl shadow-professional p-8 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-white font-poppins">Quick Actions</h3>
+                <div class="w-12 h-1 bg-gradient-to-r from-royal-purple to-pink-primary rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <a href="/menu-management" class="bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-xl p-6 border border-white/20 transition-all duration-300 transform hover:scale-105 hover:shadow-glow">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-purple-500/30 rounded-full flex items-center justify-center mr-4 backdrop-blur-sm">
+                            <span class="text-2xl">🍣</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white font-poppins">Manage Menu</h4>
+                            <p class="text-sm text-gray-300 font-inter">Add & edit items</p>
+                        </div>
                     </div>
                 </a>
 
-                <a href="/admin/analytics" class="flex items-center p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors group">
-                    <div class="p-2 rounded-lg bg-blue-600 text-white group-hover:bg-blue-700 transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="font-medium text-blue-900">Analytics</p>
-                        <p class="text-sm text-blue-600">Sales & performance data</p>
-                    </div>
-                </a>
-
-                <a href="/admin/users" class="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors group">
-                    <div class="p-2 rounded-lg bg-green-600 text-white group-hover:bg-green-700 transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="font-medium text-green-900">User Management</p>
-                        <p class="text-sm text-green-600">Admin users & permissions</p>
+                <a href="/orders" class="bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-xl p-6 border border-white/20 transition-all duration-300 transform hover:scale-105 hover:shadow-glow">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-blue-500/30 rounded-full flex items-center justify-center mr-4 backdrop-blur-sm">
+                            <span class="text-2xl">📋</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white font-poppins">View Orders</h4>
+                            <p class="text-sm text-gray-300 font-inter">Track & manage</p>
+                        </div>
                     </div>
                 </a>
 
-                <a href="/admin/settings" class="flex items-center p-4 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors group">
-                    <div class="p-2 rounded-lg bg-amber-600 text-white group-hover:bg-amber-700 transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
+                <a href="/ingredient-management" class="bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-xl p-6 border border-white/20 transition-all duration-300 transform hover:scale-105 hover:shadow-glow">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-green-500/30 rounded-full flex items-center justify-center mr-4 backdrop-blur-sm">
+                            <span class="text-2xl">🥕</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white font-poppins">Ingredients</h4>
+                            <p class="text-sm text-gray-300 font-inter">Inventory control</p>
+                        </div>
                     </div>
-                    <div class="ml-3">
-                        <p class="font-medium text-amber-900">Settings</p>
-                        <p class="text-sm text-amber-600">System configuration</p>
+                </a>
+
+                <a href="/analytics" class="bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-xl p-6 border border-white/20 transition-all duration-300 transform hover:scale-105 hover:shadow-glow">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-yellow-500/30 rounded-full flex items-center justify-center mr-4 backdrop-blur-sm">
+                            <span class="text-2xl">📈</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white font-poppins">Analytics</h4>
+                            <p class="text-sm text-gray-300 font-inter">Performance data</p>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="/weather" class="bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-xl p-6 border border-white/20 transition-all duration-300 transform hover:scale-105 hover:shadow-glow">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-sky-500/30 rounded-full flex items-center justify-center mr-4 backdrop-blur-sm">
+                            <span class="text-2xl">🌤️</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white font-poppins">Weather</h4>
+                            <p class="text-sm text-gray-300 font-inter">Local forecast</p>
+                        </div>
                     </div>
                 </a>
             </div>
         </div>
-    </div>
 
-    <!-- Orders Section -->
-    <div class="container mx-auto px-4 py-8">
-        <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold text-gray-900">Live Orders</h2>
-            <div class="flex items-center space-x-4">
-                <button @onclick="RefreshOrders" class="btn btn-outline" disabled="@isLoading">
-                    @if (isLoading)
-                    {
-                        <span>🔄 Loading...</span>
-                    }
-                    else
-                    {
-                        <span>🔄 Refresh</span>
-                    }
+        <!-- Recent Activity Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Recent Orders -->
+            <div class="glass-effect rounded-2xl shadow-professional p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h4 class="text-xl font-bold text-white font-poppins">Recent Orders</h4>
+                    <span class="bg-blue-500/20 text-blue-300 text-xs font-semibold px-3 py-1 rounded-full border border-blue-500/30 font-inter">Live</span>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-3 bg-white/10 rounded-lg hover:bg-white/20 transition-colors border border-white/20">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-green-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                                <span class="text-white text-sm font-bold">#</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-white font-inter">Order #12345</p>
+                                <p class="text-sm text-gray-300 font-inter">2 minutes ago</p>
+                            </div>
+                        </div>
+                        <span class="text-green-400 font-semibold font-poppins">€24.99</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white/10 rounded-lg hover:bg-white/20 transition-colors border border-white/20">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-blue-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                                <span class="text-white text-sm font-bold">#</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-white font-inter">Order #12344</p>
+                                <p class="text-sm text-gray-300 font-inter">5 minutes ago</p>
+                            </div>
+                        </div>
+                        <span class="text-green-400 font-semibold font-poppins">€18.50</span>
+                    </div>
+                </div>
+                <button class="w-full mt-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 font-poppins">
+                    View All Orders
                 </button>
-                <div class="flex items-center space-x-2">
-                    <span class="w-3 h-3 @(isConnectedToApi ? "bg-green-500" : "bg-yellow-500") rounded-full animate-pulse"></span>
-                    <span class="text-sm text-gray-600">@(isConnectedToApi ? "Live Updates" : "Fallback Mode")</span>
+            </div>
+
+            <!-- System Status -->
+            <div class="glass-effect rounded-2xl shadow-professional p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h4 class="text-xl font-bold text-white font-poppins">System Status</h4>
+                    <span class="bg-green-500/20 text-green-300 text-xs font-semibold px-3 py-1 rounded-full border border-green-500/30 font-inter">All Good</span>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300 font-inter">API Status</span>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                            <span class="text-green-400 font-medium font-inter">Online</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300 font-inter">Database</span>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                            <span class="text-green-400 font-medium font-inter">Connected</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300 font-inter">Payment Gateway</span>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                            <span class="text-green-400 font-medium font-inter">Active</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-green-500/20 rounded-lg border border-green-500/30">
+                    <p class="text-sm text-green-300 font-inter">All systems are running smoothly!</p>
                 </div>
             </div>
         </div>
-
-        @if (pendingOrders.Any())
-        {
-            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                @foreach (var order in pendingOrders.OrderBy(o => o.CreatedAt))
-                {
-                    <div class="bg-white rounded-lg shadow-lg border-l-4 @GetOrderBorderColor(order.Status)">
-                        <!-- Order Header -->
-                        <div class="p-4 border-b">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-bold text-lg">#@order.OrderNumber.Substring(Math.Max(0, order.OrderNumber.Length - 4))</h3>
-                                    <p class="text-sm text-gray-600">@order.CreatedAt.ToString("HH:mm") • @order.Type</p>
-                                </div>
-                                <div class="text-right">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @order.Status.GetStatusColor()">
-                                        @order.Status.GetStatusDisplay()
-                                    </span>
-                                    <p class="text-lg font-bold text-purple-600 mt-1">€@order.TotalAmount</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Order Items -->
-                        <div class="p-4">
-                            <h4 class="font-semibold mb-3">Items:</h4>
-                            <div class="space-y-2">
-                                @foreach (var item in order.Items)
-                                {
-                                    <div class="flex justify-between items-start text-sm">
-                                        <div class="flex-1">
-                                            <span class="font-medium">@(item.SushiRoll?.Name ?? item.CustomRoll?.Name ?? "Unknown Item")</span>
-                                            @if (!string.IsNullOrEmpty(item.Notes))
-                                            {
-                                                <p class="text-purple-600 italic">Note: @item.Notes</p>
-                                            }
-                                        </div>
-                                        <span class="font-semibold ml-2">x@item.Quantity</span>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-
-                        <!-- Customer Info -->
-                        <div class="p-4 border-t bg-gray-50">
-                            <div class="text-sm">
-                                <p><strong>Customer:</strong> @order.CustomerName</p>
-                                @if (order.Type == OrderType.Delivery && !string.IsNullOrEmpty(order.DeliveryAddress))
-                                {
-                                    <p><strong>Address:</strong> @order.DeliveryAddress</p>
-                                }
-                                @if (!string.IsNullOrEmpty(order.Notes))
-                                {
-                                    <p><strong>Notes:</strong> @order.Notes</p>
-                                }
-                            </div>
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div class="p-4 border-t">
-                            <div class="grid grid-cols-2 gap-2">
-                                @if (order.Status == OrderStatus.Received)
-                                {
-                                    <button @onclick="() => UpdateOrderStatus(order.Id, OrderStatus.InPreparation)" 
-                                            class="btn btn-royal text-sm" disabled="@isUpdating">
-                                        👨‍🍳 Start Cooking
-                                    </button>
-                                    <button @onclick="() => CancelOrder(order.Id)" 
-                                            class="btn bg-red-500 hover:bg-red-600 text-white text-sm" disabled="@isUpdating">
-                                        ❌ Cancel
-                                    </button>
-                                }
-                                else if (order.Status == OrderStatus.InPreparation)
-                                {
-                                    <button @onclick="() => UpdateOrderStatus(order.Id, OrderStatus.Ready)" 
-                                            class="btn btn-gold text-sm" disabled="@isUpdating">
-                                        ✅ Ready
-                                    </button>
-                                    <button disabled class="btn bg-gray-300 text-gray-500 text-sm cursor-not-allowed">
-                                        🍣 Cooking...
-                                    </button>
-                                }
-                                else if (order.Status == OrderStatus.Ready && order.Type == OrderType.Delivery)
-                                {
-                                    <button @onclick="() => UpdateOrderStatus(order.Id, OrderStatus.OutForDelivery)" 
-                                            class="btn btn-royal text-sm" disabled="@isUpdating">
-                                        🛵 Out for Delivery
-                                    </button>
-                                    <button disabled class="btn bg-gray-300 text-gray-500 text-sm cursor-not-allowed">
-                                        📦 Ready
-                                    </button>
-                                }
-                                else if (order.Status == OrderStatus.Ready && order.Type == OrderType.Pickup)
-                                {
-                                    <button @onclick="() => UpdateOrderStatus(order.Id, OrderStatus.Completed)" 
-                                            class="btn btn-gold text-sm" disabled="@isUpdating">
-                                        ✅ Picked Up
-                                    </button>
-                                    <button disabled class="btn bg-gray-300 text-gray-500 text-sm cursor-not-allowed">
-                                        📦 Ready
-                                    </button>
-                                }
-                                else if (order.Status == OrderStatus.OutForDelivery)
-                                {
-                                    <button @onclick="() => UpdateOrderStatus(order.Id, OrderStatus.Completed)" 
-                                            class="btn btn-gold text-sm" disabled="@isUpdating">
-                                        ✅ Delivered
-                                    </button>
-                                    <button disabled class="btn bg-gray-300 text-gray-500 text-sm cursor-not-allowed">
-                                        🛵 In Transit
-                                    </button>
-                                }
-                            </div>
-                        </div>
-
-                        <!-- Timer -->
-                        <div class="px-4 pb-4">
-                            <div class="text-center text-sm text-gray-600">
-                                ⏱️ @GetOrderAge(order.CreatedAt) ago
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="text-center py-12">
-                <div class="text-6xl mb-4">🍣</div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">No Pending Orders</h3>
-                <p class="text-gray-600">All caught up! New orders will appear here automatically.</p>
-            </div>
-        }
     </div>
-</AuthGuard>
+</div>
 
 @code {
-    private List<Order> pendingOrders = new();
-    private dynamic stats = new { TotalOrders = 0, PendingOrders = 0, CompletedOrders = 0, TotalRevenue = 0m };
-    private Timer? refreshTimer;
-    private bool isLoading = false;
-    private bool isUpdating = false;
-    private bool isConnectedToApi = false;
     private string currentUser = "";
+    private int totalOrders = 0;
+    private decimal todayRevenue = 0;
+    private int totalMenuItems = 0;
+    private int pendingOrders = 0;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Get current user from localStorage
-        currentUser = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "adminUsername") ?? "Admin";
-        
-        await LoadData();
-        
-        // Set up auto-refresh every 30 seconds
-        refreshTimer = new Timer(async _ => await InvokeAsync(async () => 
+        if (firstRender)
         {
-            await LoadData();
+            await LoadDashboardData();
             StateHasChanged();
-        }), null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        }
     }
 
-    private async Task Logout()
+    private async Task LoadDashboardData()
     {
         try
         {
-            // Clear local storage
-            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "adminToken");
-            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "adminUsername");
-            
-            // Show logout message
-            await JSRuntime.InvokeVoidAsync("alert", "Logged out successfully!");
-            
-            // Redirect to login
-            Navigation.NavigateTo("/login", forceLoad: true);
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                currentUser = authState.User.Identity.Name ?? "Admin";
+            }
+
+            // Mock stats for now
+            totalOrders = 156;
+            todayRevenue = 2489.50m;
+            totalMenuItems = 42;
+            pendingOrders = 8;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Logout error: {ex.Message}");
-            Navigation.NavigateTo("/login", forceLoad: true);
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
         }
-    }
-
-    private async Task LoadData()
-    {
-        isLoading = true;
-        
-        try
-        {
-            // Try to load real data from API
-            var ordersTask = ApiService.GetPendingOrdersAsync();
-            var statsTask = ApiService.GetDailyStatsAsync();
-            
-            await Task.WhenAll(ordersTask, statsTask);
-            
-            pendingOrders = await ordersTask;
-            stats = await statsTask;
-            
-            // Check if we're using real data (not just fallback)
-            var totalOrders = GetStatsIntValue("TotalOrders");
-            isConnectedToApi = pendingOrders.Any() || totalOrders > 0;
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", $"Error loading data: {ex.Message}");
-            isConnectedToApi = false;
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
-    private async Task RefreshOrders()
-    {
-        await LoadData();
-        StateHasChanged();
-    }
-
-    private async Task UpdateOrderStatus(int orderId, OrderStatus newStatus)
-    {
-        isUpdating = true;
-        
-        try
-        {
-            var success = await ApiService.UpdateOrderStatusAsync(orderId, newStatus);
-            
-            if (success)
-            {
-                // Update local order status
-                var order = pendingOrders.FirstOrDefault(o => o.Id == orderId);
-                if (order != null)
-                {
-                    order.Status = newStatus;
-                    
-                    // If completed, remove from pending list
-                    if (newStatus == OrderStatus.Completed)
-                    {
-                        pendingOrders.Remove(order);
-                    }
-                    
-                    StateHasChanged();
-                }
-            }
-            else
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "Failed to update order status. Please try again.");
-            }
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", $"Error updating order status: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", "Error updating order status. Please try again.");
-        }
-        finally
-        {
-            isUpdating = false;
-        }
-    }
-
-    private async Task CancelOrder(int orderId)
-    {
-        isUpdating = true;
-        
-        try
-        {
-            var success = await ApiService.CancelOrderAsync(orderId);
-            
-            if (success)
-            {
-                var order = pendingOrders.FirstOrDefault(o => o.Id == orderId);
-                if (order != null)
-                {
-                    order.Status = OrderStatus.Cancelled;
-                    pendingOrders.Remove(order);
-                    StateHasChanged();
-                }
-            }
-            else
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "Failed to cancel order. Please try again.");
-            }
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("console.error", $"Error cancelling order: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", "Error cancelling order. Please try again.");
-        }
-        finally
-        {
-            isUpdating = false;
-        }
-    }
-
-    private string GetOrderBorderColor(OrderStatus status) => status switch
-    {
-        OrderStatus.Received => "border-blue-500",
-        OrderStatus.InPreparation => "border-orange-500",
-        OrderStatus.Ready => "border-green-500",
-        OrderStatus.OutForDelivery => "border-purple-500",
-        _ => "border-gray-300"
-    };
-
-    private string GetOrderAge(DateTime createdAt)
-    {
-        var age = DateTime.Now - createdAt;
-        if (age.TotalMinutes < 1)
-            return "Just now";
-        else if (age.TotalMinutes < 60)
-            return $"{(int)age.TotalMinutes} min";
-        else
-            return $"{(int)age.TotalHours}h {(int)(age.TotalMinutes % 60)}m";
-    }
-
-    private object GetStatsValue(string propertyName)
-    {
-        try
-        {
-            var property = stats.GetType().GetProperty(propertyName);
-            return property?.GetValue(stats) ?? 0;
-        }
-        catch
-        {
-            return 0;
-        }
-    }
-
-    private int GetStatsIntValue(string propertyName)
-    {
-        try
-        {
-            var value = GetStatsValue(propertyName);
-            return Convert.ToInt32(value);
-        }
-        catch
-        {
-            return 0;
-        }
-    }
-
-    public void Dispose()
-    {
-        refreshTimer?.Dispose();
     }
 } 

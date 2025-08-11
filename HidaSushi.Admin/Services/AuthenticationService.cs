@@ -1,6 +1,7 @@
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
 using HidaSushi.Shared.Models;
-using System.Net.Http.Json;
 
 namespace HidaSushi.Admin.Services;
 
@@ -8,138 +9,95 @@ public class AuthenticationService
 {
     private readonly HttpClient _httpClient;
     private readonly CustomAuthenticationStateProvider _authStateProvider;
-    private readonly ILogger<AuthenticationService> _logger;
+    private readonly AdminApiService _adminApiService;
 
-    public AuthenticationService(
-        IHttpClientFactory httpClientFactory,
-        CustomAuthenticationStateProvider authStateProvider,
-        ILogger<AuthenticationService> logger)
+    public AuthenticationService(IHttpClientFactory httpClientFactory, CustomAuthenticationStateProvider authStateProvider, AdminApiService adminApiService)
     {
         _httpClient = httpClientFactory.CreateClient("AuthClient");
         _authStateProvider = authStateProvider;
-        _logger = logger;
+        _adminApiService = adminApiService;
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request)
     {
         try
         {
-            _logger.LogInformation("Attempting login for user: {Username}", request.Username);
-            _logger.LogInformation("Sending request to: {BaseAddress}api/Auth/login", _httpClient.BaseAddress);
+            Console.WriteLine($"=== AuthenticationService.LoginAsync called ===");
+            Console.WriteLine($"Username: {request.Username}");
+            Console.WriteLine($"API Base URL: {_httpClient.BaseAddress}");
             
-            // First, test if server is reachable
-            try
-            {
-                var testResponse = await _httpClient.GetAsync("api/Auth/credentials");
-                _logger.LogInformation("Server test response: {StatusCode}", testResponse.StatusCode);
-            }
-            catch (Exception testEx)
-            {
-                _logger.LogError(testEx, "Server connectivity test failed");
-            }
+            var json = JsonSerializer.Serialize(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            Console.WriteLine($"Sending POST to: {_httpClient.BaseAddress}api/auth/login");
+            var response = await _httpClient.PostAsync("api/auth/login", content);
             
-            var response = await _httpClient.PostAsJsonAsync("api/Auth/login", request);
-            
-            _logger.LogInformation("Received response with status: {StatusCode}", response.StatusCode);
-            
+            Console.WriteLine($"API Response Status: {response.StatusCode}");
+
             if (response.IsSuccessStatusCode)
             {
-                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                _logger.LogInformation("Successfully deserialized response");
-
-                if (loginResponse?.Success == true)
+                var responseJson = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"API Response Content: {responseJson}");
+                
+                var loginResponse = JsonSerializer.Deserialize<LoginResponse>(responseJson, new JsonSerializerOptions
                 {
-                    // Update authentication state
-                    await _authStateProvider.LoginAsync(loginResponse.Token, request.Username);
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (loginResponse?.Success == true && !string.IsNullOrEmpty(loginResponse.Token))
+                {
+                    Console.WriteLine($"Login successful, setting token: {loginResponse.Token.Substring(0, Math.Min(10, loginResponse.Token.Length))}...");
                     
-                    // Set authorization header for future requests
+                    // Set the token for future API calls on both HTTP clients
                     _httpClient.DefaultRequestHeaders.Authorization = 
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", loginResponse.Token);
+                    
+                    // IMPORTANT: Set the token on AdminApiService as well
+                    _adminApiService.SetAuthToken(loginResponse.Token);
+                    Console.WriteLine("Token set on AdminApiService during login");
 
-                    _logger.LogInformation("Admin user {Username} logged in successfully", request.Username);
+                    // Update authentication state
+                    await _authStateProvider.LoginAsync(loginResponse.Token, request.Username);
+                    Console.WriteLine("Authentication state updated");
+
+                    return loginResponse;
                 }
                 else
                 {
-                    _logger.LogWarning("Failed login attempt for username: {Username}", request.Username);
+                    Console.WriteLine($"Login failed - Success: {loginResponse?.Success}, Token empty: {string.IsNullOrEmpty(loginResponse?.Token)}");
                 }
-
-                return loginResponse ?? new LoginResponse { Success = false, Message = "Login failed" };
             }
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Server returned error status: {StatusCode}, Content: {Content}", response.StatusCode, errorContent);
-                return new LoginResponse { Success = false, Message = $"Server error: {response.StatusCode}" };
+                Console.WriteLine($"API Error Response: {errorContent}");
             }
+
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Invalid credentials"
+            };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during login for username: {Username}", request.Username);
-            return new LoginResponse { Success = false, Message = "Unable to connect to server" };
+            Console.WriteLine($"Login error: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Login failed. Please try again."
+            };
         }
     }
 
     public async Task LogoutAsync()
     {
-        try
-        {
-            // Call logout endpoint
-            await _httpClient.PostAsync("api/Auth/logout", null);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during logout");
-        }
-        finally
-        {
-            // Clear authentication state
-            await _authStateProvider.LogoutAsync();
-            
-            // Clear authorization header
-            _httpClient.DefaultRequestHeaders.Authorization = null;
-        }
-    }
+        // Clear the authorization headers on both HTTP clients
+        _httpClient.DefaultRequestHeaders.Authorization = null;
+        _adminApiService.SetAuthToken(string.Empty);
 
-    public async Task<bool> ValidateTokenAsync()
-    {
-        try
-        {
-            var response = await _httpClient.GetAsync("api/Auth/validate");
-            return response.IsSuccessStatusCode;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    public async Task<bool> CheckServerHealthAsync()
-    {
-        try
-        {
-            _logger.LogInformation("🔍 Checking server health at: {BaseAddress}api/Auth/health", _httpClient.BaseAddress);
-            
-            var response = await _httpClient.GetAsync("api/Auth/health");
-            
-            _logger.LogInformation("📡 Health check response: {StatusCode}", response.StatusCode);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("✅ Server health check successful: {Content}", content);
-                return true;
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("❌ Server health check failed: {StatusCode}, {Content}", response.StatusCode, errorContent);
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "💥 Exception during server health check");
-            return false;
-        }
+        // Update authentication state
+        await _authStateProvider.LogoutAsync();
     }
 } 

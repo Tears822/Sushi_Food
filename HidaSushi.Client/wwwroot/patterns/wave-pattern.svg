@@ -1,0 +1,81 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Wave gradient -->
+    <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1976d2;stop-opacity:0.3" />
+      <stop offset="50%" style="stop-color:#2196f3;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#64b5f6;stop-opacity:0.1" />
+    </linearGradient>
+    
+    <!-- Foam gradient -->
+    <linearGradient id="foamGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.4" />
+      <stop offset="100%" style="stop-color:#e3f2fd;stop-opacity:0.1" />
+    </linearGradient>
+    
+    <!-- Deep water gradient -->
+    <linearGradient id="deepWaveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d47a1;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#1565c0;stop-opacity:0.1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="400" height="200" fill="transparent"/>
+  
+  <!-- Large wave 1 -->
+  <path d="M0 120 Q50 80 100 120 T200 120 T300 120 T400 120 L400 200 L0 200 Z" 
+        fill="url(#waveGradient)" opacity="0.6"/>
+  
+  <!-- Large wave 2 (offset) -->
+  <path d="M0 140 Q80 100 160 140 T320 140 T400 140 L400 200 L0 200 Z" 
+        fill="url(#deepWaveGradient)" opacity="0.4"/>
+  
+  <!-- Medium wave 1 -->
+  <path d="M0 100 Q30 70 60 100 T120 100 T180 100 T240 100 T300 100 T360 100 T400 100 L400 200 L0 200 Z" 
+        fill="url(#waveGradient)" opacity="0.3"/>
+  
+  <!-- Medium wave 2 -->
+  <path d="M0 130 Q40 110 80 130 T160 130 T240 130 T320 130 T400 130 L400 200 L0 200 Z" 
+        fill="url(#deepWaveGradient)" opacity="0.3"/>
+  
+  <!-- Small wave crests -->
+  <path d="M0 90 Q20 75 40 90 T80 90 T120 90 T160 90 T200 90 T240 90 T280 90 T320 90 T360 90 T400 90" 
+        stroke="url(#foamGradient)" stroke-width="2" fill="none" opacity="0.5"/>
+  
+  <path d="M0 110 Q25 95 50 110 T100 110 T150 110 T200 110 T250 110 T300 110 T350 110 T400 110" 
+        stroke="url(#foamGradient)" stroke-width="1.5" fill="none" opacity="0.4"/>
+  
+  <!-- Wave foam details -->
+  <circle cx="70" cy="85" r="3" fill="url(#foamGradient)" opacity="0.6"/>
+  <circle cx="85" cy="90" r="2" fill="url(#foamGradient)" opacity="0.4"/>
+  <circle cx="78" cy="88" r="1.5" fill="url(#foamGradient)" opacity="0.5"/>
+  
+  <circle cx="170" cy="95" r="2.5" fill="url(#foamGradient)" opacity="0.5"/>
+  <circle cx="180" cy="98" r="2" fill="url(#foamGradient)" opacity="0.4"/>
+  
+  <circle cx="270" cy="88" r="3" fill="url(#foamGradient)" opacity="0.6"/>
+  <circle cx="285" cy="92" r="2" fill="url(#foamGradient)" opacity="0.4"/>
+  <circle cx="278" cy="90" r="1.5" fill="url(#foamGradient)" opacity="0.5"/>
+  
+  <!-- Small ripples -->
+  <ellipse cx="120" cy="115" rx="8" ry="2" fill="url(#waveGradient)" opacity="0.2"/>
+  <ellipse cx="220" cy="125" rx="6" ry="1.5" fill="url(#waveGradient)" opacity="0.15"/>
+  <ellipse cx="320" cy="118" rx="10" ry="2.5" fill="url(#deepWaveGradient)" opacity="0.2"/>
+  
+  <!-- Hokusai-style wave tips -->
+  <path d="M65 82 Q70 78 75 85 Q80 88 85 85 Q88 83 90 88" 
+        stroke="url(#foamGradient)" stroke-width="1" fill="none" opacity="0.7"/>
+  
+  <path d="M265 85 Q270 81 275 88 Q280 91 285 88 Q288 86 290 91" 
+        stroke="url(#foamGradient)" stroke-width="1" fill="none" opacity="0.7"/>
+  
+  <!-- Spray dots -->
+  <circle cx="75" cy="75" r="1" fill="url(#foamGradient)" opacity="0.6"/>
+  <circle cx="82" cy="78" r="0.8" fill="url(#foamGradient)" opacity="0.5"/>
+  <circle cx="68" cy="79" r="1.2" fill="url(#foamGradient)" opacity="0.4"/>
+  
+  <circle cx="275" cy="78" r="1" fill="url(#foamGradient)" opacity="0.6"/>
+  <circle cx="282" cy="81" r="0.8" fill="url(#foamGradient)" opacity="0.5"/>
+  <circle cx="268" cy="82" r="1.2" fill="url(#foamGradient)" opacity="0.4"/>
+</svg> 

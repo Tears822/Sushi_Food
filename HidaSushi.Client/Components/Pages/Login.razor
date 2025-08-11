@@ -44,14 +44,14 @@
             </p>
         </div>
 
-        <!-- Toggle Buttons with Better Visibility -->
-        <div class="flex bg-black bg-opacity-30 backdrop-blur-lg rounded-2xl p-1 mb-6 border border-white border-opacity-20">
+        <!-- Toggle Buttons with Modern Gradient Background -->
+        <div class="flex bg-gradient-to-r from-green-100/20 to-blue-100/20 backdrop-blur-lg rounded-2xl p-1 mb-6 border border-white/30 shadow-lg">
             <button @onclick="() => SetMode(false)" 
-                    class="@(isRegisterMode ? "text-white hover:text-gray-200" : "bg-white text-gray-900 shadow-lg font-semibold") flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105">
+                    class="@(isRegisterMode ? "text-white hover:text-gray-200 hover:bg-white/10" : "bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-xl font-semibold") flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105">
                 Sign In
             </button>
             <button @onclick="() => SetMode(true)" 
-                    class="@(!isRegisterMode ? "text-white hover:text-gray-200" : "bg-white text-gray-900 shadow-lg font-semibold") flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105">
+                    class="@(!isRegisterMode ? "text-white hover:text-gray-200 hover:bg-white/10" : "bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-xl font-semibold") flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105">
                 Register
             </button>
         </div>
@@ -376,7 +376,7 @@
 
             Logger.LogInformation("Attempting registration for email: {Email}", email);
 
-            var registerRequest = new RegisterRequest
+            var customerRegistrationRequest = new CustomerRegistrationRequest
             {
                 FullName = fullName,
                 Email = email,
@@ -384,9 +384,9 @@
                 Phone = phone
             };
 
-            var response = await ApiService.RegisterAsync(registerRequest);
+            var response = await ApiService.RegisterCustomerAsync(customerRegistrationRequest);
 
-            if (response.Success)
+            if (response?.Success == true)
             {
                 Logger.LogInformation("Registration successful for {Email}", email);
                 
@@ -405,7 +405,7 @@
             }
             else
             {
-                errorMessage = response.Message ?? "Registration failed. Please try again.";
+                errorMessage = response?.Message ?? "Registration failed. Please try again.";
             }
         }
         catch (Exception ex)

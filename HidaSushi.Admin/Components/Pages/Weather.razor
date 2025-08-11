@@ -1,40 +1,116 @@
 ﻿@page "/weather"
+@attribute [Authorize]
 @attribute [StreamRendering]
+@using Microsoft.AspNetCore.Authorization
+@inject NavigationManager Navigation
 
-<PageTitle>Weather</PageTitle>
+<PageTitle>Weather Forecast - HIDA SUSHI</PageTitle>
 
-<h1>Weather</h1>
+<div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+    <!-- Animated background shapes -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-40 left-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+    </div>
 
-<p>This component demonstrates showing data.</p>
+    <!-- Header Section -->
+    <div class="relative z-10 bg-gradient-to-r from-royal-purple via-pink-primary to-deep-purple shadow-professional">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm animate-bounce">
+                        <span class="text-3xl">🌤️</span>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-bold text-white mb-2 font-poppins">Weather Forecast</h1>
+                        <p class="text-light-purple text-lg font-inter">Local weather conditions for delivery planning</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <button @onclick="@(() => Navigation.NavigateTo("/admin"))" 
+                            class="bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm font-poppins cursor-pointer">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            Back to Dashboard
+                        </span>
+                    </button>
+                    <div class="text-right text-white">
+                        <p class="text-sm opacity-80 font-inter">@DateTime.Now.ToString("MMMM dd, yyyy")</p>
+                        <p class="text-lg font-semibold font-poppins">@DateTime.Now.ToString("HH:mm")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Weather Forecast -->
+        <div class="glass-effect rounded-2xl shadow-professional p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-white font-poppins">5-Day Weather Forecast</h3>
+                <div class="w-12 h-1 bg-gradient-to-r from-royal-purple to-pink-primary rounded-full"></div>
+            </div>
 
 @if (forecasts == null)
 {
-    <p><em>Loading...</em></p>
+                <div class="flex items-center justify-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-royal-purple"></div>
+                    <span class="ml-3 text-gray-300 font-inter">Loading weather data...</span>
+                </div>
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th aria-label="Temperature in Celsius">Temp. (C)</th>
-                <th aria-label="Temperature in Farenheit">Temp. (F)</th>
-                <th>Summary</th>
-            </tr>
-        </thead>
-        <tbody>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             @foreach (var forecast in forecasts)
             {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
+                            <div class="text-center">
+                                <h4 class="font-bold text-white font-poppins text-lg mb-2">@forecast.Date.ToString("ddd")</h4>
+                                <p class="text-gray-300 font-inter text-sm mb-3">@forecast.Date.ToString("MMM dd")</p>
+                                
+                                <div class="text-center mb-4">
+                                    <span class="text-4xl">@GetWeatherIcon(forecast.Summary)</span>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-300 font-inter text-sm">High:</span>
+                                        <span class="text-white font-bold font-poppins">@forecast.TemperatureC°C</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-300 font-inter text-sm">Low:</span>
+                                        <span class="text-blue-300 font-bold font-poppins">@(forecast.TemperatureC - 5)°C</span>
+                                    </div>
+                                    <div class="mt-3">
+                                        <span class="px-2 py-1 rounded-full text-xs font-semibold @GetWeatherBadgeClass(forecast.Summary) font-inter">
+                                            @forecast.Summary
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
             }
-        </tbody>
-    </table>
+                </div>
+                
+                <!-- Delivery Impact Notice -->
+                <div class="mt-8 p-6 bg-blue-500/20 border border-blue-500/30 rounded-xl">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-500/30 rounded-full flex items-center justify-center">
+                            <span class="text-blue-300">ℹ️</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-blue-300 font-poppins">Delivery Planning</h4>
+                            <p class="text-blue-200 font-inter text-sm mt-1">Weather conditions may affect delivery times. Monitor severe weather alerts for operational adjustments.</p>
+                        </div>
+                    </div>
+                </div>
 }
+        </div>
+    </div>
+</div>
 
 @code {
     private WeatherForecast[]? forecasts;
@@ -52,6 +128,35 @@ else
             TemperatureC = Random.Shared.Next(-20, 55),
             Summary = summaries[Random.Shared.Next(summaries.Length)]
         }).ToArray();
+    }
+
+    private string GetWeatherIcon(string? summary)
+    {
+        return summary?.ToLower() switch
+        {
+            var s when s?.Contains("rain") == true => "🌧️",
+            var s when s?.Contains("snow") == true => "❄️",
+            var s when s?.Contains("cloud") == true => "☁️",
+            var s when s?.Contains("sun") == true || s?.Contains("clear") == true => "☀️",
+            var s when s?.Contains("storm") == true => "⛈️",
+            var s when s?.Contains("fog") == true => "🌫️",
+            var s when s?.Contains("wind") == true => "💨",
+            _ => "🌤️"
+        };
+    }
+
+    private string GetWeatherBadgeClass(string? summary)
+    {
+        return summary?.ToLower() switch
+        {
+            var s when s?.Contains("rain") == true => "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+            var s when s?.Contains("snow") == true => "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30",
+            var s when s?.Contains("cloud") == true => "bg-gray-500/20 text-gray-300 border border-gray-500/30",
+            var s when s?.Contains("sun") == true || s?.Contains("clear") == true => "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30",
+            var s when s?.Contains("storm") == true => "bg-red-500/20 text-red-300 border border-red-500/30",
+            var s when s?.Contains("fog") == true => "bg-purple-500/20 text-purple-300 border border-purple-500/30",
+            _ => "bg-green-500/20 text-green-300 border border-green-500/30"
+        };
     }
 
     private class WeatherForecast

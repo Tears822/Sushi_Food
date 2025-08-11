@@ -46,6 +46,8 @@ public class Order
     
     public string? PaymentIntentId { get; set; } // For Stripe integration
     
+    public string? PaymentReference { get; set; } // Transaction ID reference
+    
     public string Notes { get; set; } = string.Empty;
     
     // Enhanced tracking timestamps

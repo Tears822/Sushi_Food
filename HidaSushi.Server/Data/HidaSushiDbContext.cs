@@ -1,12 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using HidaSushi.Shared.Models;
+using System.Reflection;
 
 namespace HidaSushi.Server.Data;
 
 public class HidaSushiDbContext : DbContext
 {
-    public HidaSushiDbContext(DbContextOptions<HidaSushiDbContext> options) : base(options)
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<HidaSushiDbContext> _logger;
+
+    public HidaSushiDbContext(DbContextOptions<HidaSushiDbContext> options, 
+                              IConfiguration configuration,
+                              ILogger<HidaSushiDbContext> logger) : base(options)
     {
+        _configuration = configuration;
+        _logger = logger;
     }
 
     // Core entities
@@ -21,11 +29,91 @@ public class HidaSushiDbContext : DbContext
     public DbSet<OrderStatusHistory> OrderStatusHistory { get; set; }
     public DbSet<DailyAnalytics> DailyAnalytics { get; set; }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            var connectionString = _configuration.GetConnectionString("DefaultConnection");
+            optionsBuilder.UseSqlServer(connectionString, sqlOptions =>
+            {
+                // Connection resilience
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: _configuration.GetValue<int>("Database:MaxRetryCount", 3),
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null);
+
+                // Query performance
+                sqlOptions.CommandTimeout(_configuration.GetValue<int>("Database:CommandTimeout", 30));
+            });
+
+            // Performance optimizations
+            if (_configuration.GetValue<bool>("Database:EnableSensitiveDataLogging", false))
+            {
+                optionsBuilder.EnableSensitiveDataLogging();
+            }
+
+            if (_configuration.GetValue<bool>("Database:EnableDetailedErrors", false))
+            {
+                optionsBuilder.EnableDetailedErrors();
+            }
+
+            // Logging configuration
+            if (_configuration.GetValue<bool>("Performance:EnableQueryLogging", false))
+            {
+                optionsBuilder.LogTo(message => _logger.LogInformation(message));
+            }
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure Customer
+        // Apply all configurations from the current assembly
+        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+        // Configure Customer entity
+        ConfigureCustomerEntity(modelBuilder);
+
+        // Configure AdminUser entity
+        ConfigureAdminUserEntity(modelBuilder);
+
+        // Configure SushiRoll entity
+        ConfigureSushiRollEntity(modelBuilder);
+
+        // Configure Ingredient entity
+        ConfigureIngredientEntity(modelBuilder);
+
+        // Configure Order entity
+        ConfigureOrderEntity(modelBuilder);
+
+        // Configure OrderItem entity
+        ConfigureOrderItemEntity(modelBuilder);
+
+        // Configure CustomRoll entity
+        ConfigureCustomRollEntity(modelBuilder);
+
+        // Configure OrderStatusHistory entity
+        ConfigureOrderStatusHistoryEntity(modelBuilder);
+
+        // Configure DailyAnalytics entity
+        ConfigureDailyAnalyticsEntity(modelBuilder);
+
+        // Configure CustomerAddress entity
+        ConfigureCustomerAddressEntity(modelBuilder);
+
+        // Configure relationships
+        ConfigureRelationships(modelBuilder);
+
+        // Configure indexes for performance
+        ConfigureIndexes(modelBuilder);
+
+        // Configure data seeding
+        SeedData(modelBuilder);
+    }
+
+    private void ConfigureCustomerEntity(ModelBuilder modelBuilder)
+    {
         modelBuilder.Entity<Customer>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -33,12 +121,163 @@ public class HidaSushiDbContext : DbContext
             entity.Property(e => e.Email).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Phone).HasMaxLength(20);
             entity.Property(e => e.PasswordHash).IsRequired().HasMaxLength(500);
-            entity.Property(e => e.TotalSpent).HasColumnType("decimal(10,2)");
             entity.Property(e => e.PreferencesJson).HasColumnType("nvarchar(max)");
-            entity.HasIndex(e => e.Email).IsUnique();
-        });
+            entity.Property(e => e.TotalSpent).HasColumnType("decimal(10,2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
 
-        // Configure CustomerAddress
+            // Unique constraint
+            entity.HasIndex(e => e.Email).IsUnique().HasDatabaseName("IX_Customers_Email_Unique");
+        });
+    }
+
+    private void ConfigureAdminUserEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AdminUser>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Email).HasMaxLength(200);
+            entity.Property(e => e.PasswordHash).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Role).IsRequired().HasMaxLength(20).HasDefaultValue("Admin");
+            entity.Property(e => e.FullName).HasMaxLength(100);
+            entity.Property(e => e.PermissionsJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            // Unique constraints
+            entity.HasIndex(e => e.Username).IsUnique().HasDatabaseName("IX_AdminUsers_Username_Unique");
+            entity.HasIndex(e => e.Email).IsUnique().HasDatabaseName("IX_AdminUsers_Email_Unique");
+        });
+    }
+
+    private void ConfigureSushiRollEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SushiRoll>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Price).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(e => e.IngredientsJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.AllergensJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.PreparationTimeMinutes).HasDefaultValue(15);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+    }
+
+    private void ConfigureIngredientEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Ingredient>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(300);
+            entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.AdditionalPrice).HasColumnType("decimal(10,2)").HasDefaultValue(0);
+            entity.Property(e => e.AllergensJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.Protein).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.Carbs).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.Fat).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.MinStockLevel).HasDefaultValue(10);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+    }
+
+    private void ConfigureOrderEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Order>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.OrderNumber).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.CustomerName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.CustomerEmail).HasMaxLength(200);
+            entity.Property(e => e.CustomerPhone).HasMaxLength(20);
+            entity.Property(e => e.SubtotalAmount).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(e => e.DeliveryFee).HasColumnType("decimal(10,2)").HasDefaultValue(0);
+            entity.Property(e => e.TaxAmount).HasColumnType("decimal(10,2)").HasDefaultValue(0);
+            entity.Property(e => e.TotalAmount).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(e => e.Type).HasMaxLength(20).HasDefaultValue(OrderType.Pickup);
+            entity.Property(e => e.Status).HasMaxLength(30).HasDefaultValue(OrderStatus.Received);
+            entity.Property(e => e.PaymentMethod).HasMaxLength(20).HasDefaultValue(PaymentMethod.CashOnDelivery);
+            entity.Property(e => e.PaymentStatus).HasMaxLength(20).HasDefaultValue(PaymentStatus.Pending);
+            entity.Property(e => e.PaymentIntentId).HasMaxLength(200);
+            entity.Property(e => e.PaymentReference).HasMaxLength(200);
+            entity.Property(e => e.DeliveryAddress).HasMaxLength(500);
+            entity.Property(e => e.DeliveryInstructions).HasMaxLength(500);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.Location).HasMaxLength(100).HasDefaultValue("Brussels");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            // Unique constraint
+            entity.HasIndex(e => e.OrderNumber).IsUnique().HasDatabaseName("IX_Orders_OrderNumber_Unique");
+        });
+    }
+
+    private void ConfigureOrderItemEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<OrderItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.UnitPrice).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(e => e.Price).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.SpecialInstructions).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+    }
+
+    private void ConfigureCustomRollEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CustomRoll>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(200).HasDefaultValue("Custom Roll");
+            entity.Property(e => e.RollType).HasMaxLength(20).HasDefaultValue(RollType.Normal);
+            entity.Property(e => e.SelectedIngredientsJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.AllergensJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.TotalPrice).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+    }
+
+    private void ConfigureOrderStatusHistoryEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<OrderStatusHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.OrderId).IsRequired();
+            entity.Property(e => e.NewStatus).IsRequired().HasMaxLength(30);
+            entity.Property(e => e.PreviousStatus).HasMaxLength(30);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+    }
+
+    private void ConfigureDailyAnalyticsEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<DailyAnalytics>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Date).IsRequired();
+            entity.Property(e => e.TotalRevenue).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(e => e.AverageOrderValue).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(e => e.HourlyOrderCountsJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.PopularRollsJson).HasColumnType("nvarchar(max)");
+
+            // Unique constraint on date
+            entity.HasIndex(e => e.Date).IsUnique().HasDatabaseName("IX_DailyAnalytics_Date_Unique");
+        });
+    }
+
+    private void ConfigureCustomerAddressEntity(ModelBuilder modelBuilder)
+    {
         modelBuilder.Entity<CustomerAddress>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -47,271 +286,286 @@ public class HidaSushiDbContext : DbContext
             entity.Property(e => e.AddressLine2).HasMaxLength(200);
             entity.Property(e => e.City).IsRequired().HasMaxLength(100);
             entity.Property(e => e.PostalCode).IsRequired().HasMaxLength(20);
-            entity.Property(e => e.Country).HasMaxLength(50);
+            entity.Property(e => e.Country).HasMaxLength(100).HasDefaultValue("Belgium");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+    }
+
+    private void ConfigureRelationships(ModelBuilder modelBuilder)
+    {
+        // Customer -> CustomerAddress (One-to-Many)
+        modelBuilder.Entity<CustomerAddress>()
+            .HasOne(ca => ca.Customer)
+            .WithMany(c => c.Addresses)
+            .HasForeignKey(ca => ca.CustomerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Customer -> Order (One-to-Many, nullable)
+        modelBuilder.Entity<Order>()
+            .HasOne<Customer>()
+            .WithMany(c => c.Orders)
+            .HasForeignKey(o => o.CustomerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // AdminUser -> Order (One-to-Many, nullable)
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.AcceptedByUser)
+            .WithMany()
+            .HasForeignKey(o => o.AcceptedBy)
+            .OnDelete(DeleteBehavior.SetNull);
             
-            entity.HasOne(e => e.Customer)
-                .WithMany(c => c.Addresses)
-                .HasForeignKey(e => e.CustomerId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
+        // Order -> OrderItem (One-to-Many)
+        modelBuilder.Entity<OrderItem>()
+            .HasOne(oi => oi.Order)
+            .WithMany(o => o.Items)
+            .HasForeignKey(oi => oi.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        // Configure AdminUser
-        modelBuilder.Entity<AdminUser>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.Email).HasMaxLength(200);
-            entity.Property(e => e.PasswordHash).IsRequired().HasMaxLength(500);
-            entity.Property(e => e.Role).IsRequired().HasMaxLength(20);
-            entity.Property(e => e.FullName).HasMaxLength(100);
-            entity.Property(e => e.PermissionsJson).HasColumnType("nvarchar(max)");
-            entity.HasIndex(e => e.Username).IsUnique();
-        });
+        // SushiRoll -> OrderItem (One-to-Many, nullable)
+        modelBuilder.Entity<OrderItem>()
+            .HasOne(oi => oi.SushiRoll)
+            .WithMany()
+            .HasForeignKey(oi => oi.SushiRollId)
+            .OnDelete(DeleteBehavior.SetNull);
 
-        // Configure SushiRoll
-        modelBuilder.Entity<SushiRoll>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-            entity.Property(e => e.Description).HasMaxLength(500);
-            entity.Property(e => e.Price).HasColumnType("decimal(10,2)");
-            entity.Property(e => e.ImageUrl).HasMaxLength(500);
-            entity.Property(e => e.IngredientsJson).HasColumnType("nvarchar(max)");
-            entity.Property(e => e.AllergensJson).HasColumnType("nvarchar(max)");
-            entity.Property(e => e.PreparationTimeMinutes).HasDefaultValue(15);
-            entity.Property(e => e.PopularityScore).HasDefaultValue(0);
-            entity.Property(e => e.TimesOrdered).HasDefaultValue(0);
-        });
+        // CustomRoll -> OrderItem (One-to-Many, nullable)
+        modelBuilder.Entity<OrderItem>()
+            .HasOne(oi => oi.CustomRoll)
+            .WithMany()
+            .HasForeignKey(oi => oi.CustomRollId)
+            .OnDelete(DeleteBehavior.SetNull);
 
-        // Configure Ingredient
-        modelBuilder.Entity<Ingredient>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.Description).HasMaxLength(300);
-            entity.Property(e => e.AdditionalPrice).HasColumnType("decimal(10,2)");
-            entity.Property(e => e.Category).HasConversion<string>();
-            entity.Property(e => e.AllergensJson).HasColumnType("nvarchar(max)");
-            entity.Property(e => e.MaxAllowed).HasDefaultValue(1);
-            entity.Property(e => e.ImageUrl).HasMaxLength(500);
-            entity.Property(e => e.Calories).HasDefaultValue(0);
-            entity.Property(e => e.Protein).HasColumnType("decimal(5,2)");
-            entity.Property(e => e.Carbs).HasColumnType("decimal(5,2)");
-            entity.Property(e => e.Fat).HasColumnType("decimal(5,2)");
-            entity.Property(e => e.StockQuantity);
-            entity.Property(e => e.MinStockLevel).HasDefaultValue(10);
-            entity.Property(e => e.PopularityScore).HasDefaultValue(0);
-            entity.Property(e => e.TimesUsed).HasDefaultValue(0);
-        });
+        // Order -> OrderStatusHistory (One-to-Many)
+        modelBuilder.Entity<OrderStatusHistory>()
+            .HasOne<Order>()
+            .WithMany(o => o.StatusHistory)
+            .HasForeignKey(osh => osh.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        // Configure Order
-        modelBuilder.Entity<Order>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.OrderNumber).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.CustomerName).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.CustomerEmail).HasMaxLength(200);
-            entity.Property(e => e.CustomerPhone).HasMaxLength(20);
-            entity.Property(e => e.SubtotalAmount).HasColumnType("decimal(10,2)");
-            entity.Property(e => e.DeliveryFee).HasColumnType("decimal(10,2)");
-            entity.Property(e => e.TaxAmount).HasColumnType("decimal(10,2)");
-            entity.Property(e => e.TotalAmount).HasColumnType("decimal(10,2)");
-            entity.Property(e => e.DeliveryAddress).HasMaxLength(500);
-            entity.Property(e => e.DeliveryInstructions).HasMaxLength(500);
-            entity.Property(e => e.Notes).HasMaxLength(500);
-            entity.Property(e => e.PaymentIntentId).HasMaxLength(200);
-            entity.Property(e => e.Type).HasConversion<string>();
-            entity.Property(e => e.Status).HasConversion<string>();
-            entity.Property(e => e.PaymentMethod).HasConversion<string>();
-            entity.Property(e => e.PaymentStatus).HasConversion<string>();
-            entity.HasIndex(e => e.OrderNumber).IsUnique();
+        // AdminUser -> OrderStatusHistory (One-to-Many, nullable)
+        modelBuilder.Entity<OrderStatusHistory>()
+            .HasOne<AdminUser>()
+            .WithMany()
+            .HasForeignKey(osh => osh.ChangedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+    }
 
-            entity.HasOne(e => e.Customer)
-                .WithMany(c => c.Orders)
-                .HasForeignKey(e => e.CustomerId)
-                .OnDelete(DeleteBehavior.SetNull);
+    private void ConfigureIndexes(ModelBuilder modelBuilder)
+    {
+        // High-performance indexes for frequent queries
 
-            entity.HasOne(e => e.AcceptedByUser)
-                .WithMany()
-                .HasForeignKey(e => e.AcceptedBy)
-                .OnDelete(DeleteBehavior.SetNull);
+        // Orders - Performance critical indexes
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => new { o.Status, o.CreatedAt })
+            .HasDatabaseName("IX_Orders_Status_CreatedAt");
 
-            entity.HasMany(e => e.Items)
-                .WithOne(oi => oi.Order)
-                .HasForeignKey(e => e.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => new { o.CustomerId, o.CreatedAt })
+            .HasDatabaseName("IX_Orders_CustomerId_CreatedAt");
 
-            entity.HasMany(e => e.StatusHistory)
-                .WithOne(h => h.Order)
-                .HasForeignKey(e => e.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => o.PaymentStatus)
+            .HasDatabaseName("IX_Orders_PaymentStatus");
 
-        // Configure OrderItem
-        modelBuilder.Entity<OrderItem>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.UnitPrice).HasColumnType("decimal(10,2)");
-            entity.Property(e => e.Price).HasColumnType("decimal(10,2)");
-            entity.Property(e => e.SpecialInstructions).HasMaxLength(500);
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => o.Type)
+            .HasDatabaseName("IX_Orders_Type");
 
-            entity.HasOne(e => e.SushiRoll)
-                .WithMany()
-                .HasForeignKey(e => e.SushiRollId)
-                .OnDelete(DeleteBehavior.SetNull);
+        // SushiRolls - Menu and popularity indexes
+        modelBuilder.Entity<SushiRoll>()
+            .HasIndex(sr => new { sr.IsAvailable, sr.PopularityScore })
+            .HasDatabaseName("IX_SushiRolls_Available_Popularity");
 
-            entity.HasOne(e => e.CustomRoll)
-                .WithMany()
-                .HasForeignKey(e => e.CustomRollId)
-                .OnDelete(DeleteBehavior.SetNull);
-        });
+        modelBuilder.Entity<SushiRoll>()
+            .HasIndex(sr => new { sr.IsSignatureRoll, sr.IsAvailable })
+            .HasDatabaseName("IX_SushiRolls_Signature_Available");
 
-        // Configure CustomRoll
-        modelBuilder.Entity<CustomRoll>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).HasMaxLength(200);
-            entity.Property(e => e.RollType).HasConversion<string>();
-            entity.Property(e => e.TotalPrice).HasColumnType("decimal(10,2)");
-            entity.Property(e => e.SelectedIngredientsJson).HasColumnType("nvarchar(max)");
-            entity.Property(e => e.AllergensJson).HasColumnType("nvarchar(max)");
-            entity.Property(e => e.Notes).HasMaxLength(500);
-        });
+        modelBuilder.Entity<SushiRoll>()
+            .HasIndex(sr => new { sr.IsVegetarian, sr.IsAvailable })
+            .HasDatabaseName("IX_SushiRolls_Vegetarian_Available");
 
-        // Configure OrderStatusHistory
-        modelBuilder.Entity<OrderStatusHistory>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.PreviousStatus).HasMaxLength(30);
-            entity.Property(e => e.NewStatus).IsRequired().HasMaxLength(30);
-            entity.Property(e => e.Notes).HasMaxLength(500);
+        // Ingredients - Filtering and availability indexes
+        modelBuilder.Entity<Ingredient>()
+            .HasIndex(i => new { i.Category, i.IsAvailable })
+            .HasDatabaseName("IX_Ingredients_Category_Available");
 
-            entity.HasOne(e => e.ChangedByUser)
-                .WithMany()
-                .HasForeignKey(e => e.ChangedBy)
-                .OnDelete(DeleteBehavior.SetNull);
-        });
+        modelBuilder.Entity<Ingredient>()
+            .HasIndex(i => new { i.IsAvailable, i.StockQuantity })
+            .HasDatabaseName("IX_Ingredients_Available_Stock");
 
-        // Configure DailyAnalytics
-        modelBuilder.Entity<DailyAnalytics>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Date).IsRequired();
-            entity.Property(e => e.TotalOrders).IsRequired();
-            entity.Property(e => e.TotalRevenue).HasColumnType("decimal(10,2)");
-            entity.Property(e => e.AverageOrderValue).HasColumnType("decimal(10,2)");
-            entity.Property(e => e.AveragePrepTime).HasColumnType("time");
-            entity.Property(e => e.PopularRollsJson).HasColumnType("nvarchar(max)");
-            entity.Property(e => e.PopularIngredientsJson).HasColumnType("nvarchar(max)");
-            entity.Property(e => e.HourlyOrderCountsJson).HasColumnType("nvarchar(max)");
-            entity.Property(e => e.CustomerRetentionRate).HasColumnType("decimal(5,2)");
-            entity.HasIndex(e => e.Date).IsUnique();
-            
-            // Ignore the Dictionary property as it's handled via JSON
-            entity.Ignore(e => e.HourlyOrderCounts);
-            entity.Ignore(e => e.PopularRolls);
-            entity.Ignore(e => e.PopularIngredients);
-        });
+        // Customers - Login and search indexes
+        modelBuilder.Entity<Customer>()
+            .HasIndex(c => new { c.IsActive, c.LastLoginAt })
+            .HasDatabaseName("IX_Customers_Active_LastLogin");
 
-        // Seed data
-        SeedData(modelBuilder);
+        modelBuilder.Entity<Customer>()
+            .HasIndex(c => c.TotalOrders)
+            .HasDatabaseName("IX_Customers_TotalOrders");
+
+        // AdminUsers - Authentication indexes
+        modelBuilder.Entity<AdminUser>()
+            .HasIndex(au => new { au.IsActive, au.Role })
+            .HasDatabaseName("IX_AdminUsers_Active_Role");
+
+        // OrderItems - Order details performance
+        modelBuilder.Entity<OrderItem>()
+            .HasIndex(oi => new { oi.OrderId, oi.SushiRollId })
+            .HasDatabaseName("IX_OrderItems_Order_SushiRoll");
+
+        // OrderStatusHistory - Tracking and audit
+        modelBuilder.Entity<OrderStatusHistory>()
+            .HasIndex(osh => new { osh.OrderId, osh.CreatedAt })
+            .HasDatabaseName("IX_OrderStatusHistory_Order_CreatedAt");
+
+        // DailyAnalytics - Reporting indexes
+        modelBuilder.Entity<DailyAnalytics>()
+            .HasIndex(da => da.Date)
+            .HasDatabaseName("IX_DailyAnalytics_Date");
+
+        // CustomerAddress - Customer lookup
+        modelBuilder.Entity<CustomerAddress>()
+            .HasIndex(ca => new { ca.CustomerId, ca.IsDefault })
+            .HasDatabaseName("IX_CustomerAddress_Customer_Default");
     }
 
     private void SeedData(ModelBuilder modelBuilder)
     {
-        // Seed Admin Users
+        // Seed default admin user
         modelBuilder.Entity<AdminUser>().HasData(
             new AdminUser
             {
                 Id = 1,
                 Username = "admin",
-                Email = "admin@hidasushi.net",
-                PasswordHash = "$2a$11$dummy.hash.for.HidaSushi2024!",
-                Role = "Admin",
+                Email = "admin@hidasushi.com",
+                PasswordHash = "$2a$11$7hOB7LpLz7wkKgxF7yGCp.1JvGKOJtCQj3M2YPXBz9J3qBYGcb.HO", // "admin123"
+                Role = "SuperAdmin",
                 FullName = "System Administrator",
-                PermissionsJson = "[\"all\"]",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            },
-            new AdminUser
-            {
-                Id = 2,
-                Username = "jonathan",
-                Email = "jonathan@hidasushi.net",
-                PasswordHash = "$2a$11$dummy.hash.for.ChefJonathan123!",
-                Role = "Chef",
-                FullName = "Chef Jonathan",
-                PermissionsJson = "[\"orders\", \"menu\", \"analytics\", \"ingredients\"]",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            },
-            new AdminUser
-            {
-                Id = 3,
-                Username = "kitchen",
-                Email = "kitchen@hidasushi.net",
-                PasswordHash = "$2a$11$dummy.hash.for.Kitchen2024!",
-                Role = "Kitchen",
-                FullName = "Kitchen Staff",
-                PermissionsJson = "[\"orders\", \"order_status\"]",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             }
         );
 
-        // Seed Demo Customer
-        modelBuilder.Entity<Customer>().HasData(
-            new Customer
+        // Seed sample sushi rolls for development
+        modelBuilder.Entity<SushiRoll>().HasData(
+            new SushiRoll
             {
                 Id = 1,
-                FullName = "Demo Customer",
-                Email = "demo@customer.com",
-                Phone = "+32 470 12 34 56",
-                PasswordHash = "$2a$11$dummy.hash.for.demo123!",
-                IsActive = true,
-                EmailVerified = true,
+                Name = "Dragon Roll",
+                Description = "Grilled eel, cucumber, avocado with special dragon sauce",
+                Price = 18.90m,
+                IsSignatureRoll = true,
+                IsAvailable = true,
+                PreparationTimeMinutes = 20,
+                Calories = 320,
+                PopularityScore = 95,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new SushiRoll
+            {
+                Id = 2,
+                Name = "California Roll",
+                Description = "Crab, avocado, cucumber wrapped in seaweed and sesame seeds",
+                Price = 12.50m,
+                IsSignatureRoll = true,
+                IsAvailable = true,
+                PreparationTimeMinutes = 15,
+                Calories = 255,
+                PopularityScore = 88,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new SushiRoll
+            {
+                Id = 3,
+                Name = "Vegetarian Garden Roll",
+                Description = "Fresh avocado, cucumber, carrot, and lettuce with sesame dressing",
+                Price = 11.90m,
+                IsSignatureRoll = true,
+                IsVegetarian = true,
+                IsAvailable = true,
+                PreparationTimeMinutes = 12,
+                Calories = 180,
+                PopularityScore = 75,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             }
         );
 
-        // Seed Signature Rolls
-        modelBuilder.Entity<SushiRoll>().HasData(SignatureRolls.DefaultRolls);
-
-        // Seed Ingredients
-        modelBuilder.Entity<Ingredient>().HasData(DefaultIngredients.All);
-    }
-
-    // Public method for runtime seeding
-    public void SeedRuntimeData()
-    {
-        // Only add if empty
-        if (!SushiRolls.Any())
-        {
-            SushiRolls.AddRange(SignatureRolls.DefaultRolls);
-        }
-
-        if (!Ingredients.Any())
-        {
-            Ingredients.AddRange(DefaultIngredients.All);
-        }
-
-        if (!Customers.Any())
-        {
-            Customers.Add(new Customer
+        // Seed sample ingredients
+        modelBuilder.Entity<Ingredient>().HasData(
+            new Ingredient
             {
-                FullName = "Demo Customer",
-                Email = "demo@customer.com",
-                Phone = "+32 470 12 34 56",
-                PasswordHash = "$2a$11$dummy.hash.for.demo123!",
-                IsActive = true,
-                EmailVerified = true,
+                Id = 1,
+                Name = "Fresh Salmon",
+                Description = "Premium Norwegian salmon",
+                Category = IngredientCategory.Protein,
+                AdditionalPrice = 3.50m,
+                IsAvailable = true,
+                StockQuantity = 50,
+                MinStockLevel = 10,
+                Calories = 208,
+                Protein = 25.4m,
+                Fat = 12.4m,
+                Carbs = 0m,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
-            });
+            },
+            new Ingredient
+            {
+                Id = 2,
+                Name = "Avocado",
+                Description = "Fresh ripe avocado",
+                Category = IngredientCategory.Vegetable,
+                AdditionalPrice = 1.50m,
+                IsAvailable = true,
+                IsVegan = true,
+                StockQuantity = 30,
+                MinStockLevel = 5,
+                Calories = 160,
+                Protein = 2m,
+                Fat = 14.7m,
+                Carbs = 8.5m,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        );
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        // Update timestamps automatically
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.Entity is BaseEntity && (e.State == EntityState.Added || e.State == EntityState.Modified));
+
+        foreach (var entry in entries)
+    {
+            var entity = (BaseEntity)entry.Entity;
+            
+            if (entry.State == EntityState.Added)
+        {
+                entity.CreatedAt = DateTime.UtcNow;
+        }
+
+            entity.UpdatedAt = DateTime.UtcNow;
+        }
+
+        try
+        {
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving changes to database");
+            throw;
         }
     }
+}
+
+// Base entity for automatic timestamp management
+public abstract class BaseEntity
+{
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 } 

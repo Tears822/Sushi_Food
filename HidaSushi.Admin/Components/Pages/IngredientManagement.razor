@@ -1,299 +1,323 @@
 @page "/ingredient-management"
-@using HidaSushi.Shared.Models
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
 @using HidaSushi.Admin.Services
-@inject AdminApiService ApiService
-@inject IJSRuntime JSRuntime
+@inject AdminApiService AdminApiService
+@inject NavigationManager Navigation
 
-<PageTitle>Ingredient Management - HIDA SUSHI Admin</PageTitle>
+<PageTitle>Ingredient Management - HIDA SUSHI</PageTitle>
 
-<AuthGuard>
-    <!-- Ingredient Management Header -->
-    <div class="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6">
-        <div class="container mx-auto">
+<div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+    <!-- Animated background shapes -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-40 left-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Header Section -->
+    <div class="relative z-10 bg-gradient-to-r from-royal-purple via-pink-primary to-deep-purple shadow-professional">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm animate-bounce">
+                        <span class="text-3xl">🥕</span>
+                    </div>
                 <div>
-                    <h1 class="text-3xl font-bold">🥬 Ingredient Management</h1>
-                    <p class="text-green-100">Manage ingredient availability • Set pricing • Control inventory</p>
+                        <h1 class="text-4xl font-bold text-white mb-2 font-poppins">Ingredient Management</h1>
+                        <p class="text-light-purple text-lg font-inter">Control your inventory and ingredient stock</p>
+                    </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button @onclick="() => ShowAddIngredientModal()" 
-                            class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-colors flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    <button @onclick="@(() => Navigation.NavigateTo("/admin"))" 
+                            class="bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm font-poppins cursor-pointer">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
-                        Add Ingredient
+                            Back to Dashboard
+                        </span>
                     </button>
-                    <button @onclick="RefreshIngredients" 
-                            class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-colors flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    <button @onclick="ShowAddModal" 
+                            class="bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm font-poppins cursor-pointer">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        Refresh
+                            Add Ingredient
+                        </span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Category Filter Tabs -->
-    <div class="bg-white border-b border-gray-200 sticky top-0 z-20">
-        <div class="container mx-auto px-4">
-            <div class="flex space-x-1 overflow-x-auto">
-                <button @onclick="() => SetCategoryFilter(null)" 
-                        class="@(selectedCategory == null ? "border-green-500 text-green-600 bg-green-50" : "border-transparent text-gray-500 hover:text-gray-700") whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors">
-                    All Categories (@allIngredients.Count)
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Filter Section -->
+        <div class="glass-effect rounded-2xl shadow-professional p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-white font-poppins">Filter by Category</h3>
+                <div class="w-8 h-1 bg-gradient-to-r from-royal-purple to-pink-primary rounded-full"></div>
+            </div>
+            
+            <div class="flex flex-wrap gap-3">
+                <button @onclick="() => FilterByCategory(null)" 
+                        class="@(selectedCategory == null ? "bg-gradient-to-r from-royal-purple to-pink-primary text-white" : "bg-white/10 text-gray-300 hover:bg-white/20") px-4 py-2 rounded-lg transition-all duration-200 font-inter cursor-pointer">
+                    All Categories
                 </button>
-                @foreach (var category in Enum.GetValues<IngredientCategory>())
+                @foreach (var category in categories)
                 {
-                    var count = allIngredients.Count(i => i.Category == category);
-                    <button @onclick="() => SetCategoryFilter(category)" 
-                            class="@(selectedCategory == category ? "border-green-500 text-green-600 bg-green-50" : "border-transparent text-gray-500 hover:text-gray-700") whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors">
-                        @GetCategoryIcon(category) @category (@count)
+                    <button @onclick="() => FilterByCategory(category)" 
+                            class="@(selectedCategory == category ? "bg-gradient-to-r from-royal-purple to-pink-primary text-white" : "bg-white/10 text-gray-300 hover:bg-white/20") px-4 py-2 rounded-lg transition-all duration-200 font-inter cursor-pointer">
+                        @category.ToString()
                     </button>
                 }
             </div>
         </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Total Ingredients</p>
+                        <p class="text-3xl font-bold text-white font-poppins">@filteredIngredients.Count</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">🥕</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Available</p>
+                        <p class="text-3xl font-bold text-green-400 font-poppins">@filteredIngredients.Count(i => i.IsAvailable)</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">✅</span>
+            </div>
+        </div>
     </div>
 
-    <!-- Ingredients Grid -->
-    <div class="container mx-auto px-4 py-8">
-        @if (isLoading)
-        {
-            <div class="text-center py-16">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-                <p class="text-gray-600">Loading ingredients...</p>
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Low Stock</p>
+                        <p class="text-3xl font-bold text-orange-400 font-poppins">@filteredIngredients.Count(i => i.StockQuantity < 10)</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">⚠️</span>
+                    </div>
+                </div>
             </div>
-        }
-        else if (!filteredIngredients.Any())
-        {
-            <div class="text-center py-16">
-                <div class="text-6xl mb-4">🥬</div>
-                <h3 class="text-xl font-semibold text-gray-700 mb-2">No Ingredients Found</h3>
-                <p class="text-gray-500">@(selectedCategory.HasValue ? $"No {selectedCategory} ingredients available." : "Start by adding some ingredients to your inventory.")</p>
-                <button @onclick="() => ShowAddIngredientModal()" 
-                        class="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                    Add First Ingredient
-                </button>
+            
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Categories</p>
+                        <p class="text-3xl font-bold text-blue-400 font-poppins">@categories.Count</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">📂</span>
+                    </div>
+                </div>
             </div>
+        </div>
+
+        <!-- Ingredients Grid -->
+        <div class="glass-effect rounded-2xl shadow-professional p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-white font-poppins">
+                    @if (selectedCategory != null)
+                    {
+                        @($"{selectedCategory} Ingredients")
         }
         else
+                    {
+                        @("All Ingredients")
+                    }
+                </h3>
+                <div class="w-12 h-1 bg-gradient-to-r from-royal-purple to-pink-primary rounded-full"></div>
+            </div>
+            
+            @if (isLoading)
+            {
+                <div class="flex items-center justify-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-royal-purple"></div>
+                    <span class="ml-3 text-gray-300 font-inter">Loading ingredients...</span>
+                </div>
+            }
+            else if (filteredIngredients.Any())
         {
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                @foreach (var ingredient in filteredIngredients.OrderBy(i => i.Category).ThenBy(i => i.Name))
+                    @foreach (var ingredient in filteredIngredients)
                 {
-                    <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden @(ingredient.IsAvailable ? "" : "opacity-60 bg-gray-50")">
-                        <!-- Ingredient Header -->
-                        <div class="@GetCategoryHeaderClass(ingredient.Category) px-6 py-4">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-3">
-                                    <div class="text-2xl">@GetCategoryIcon(ingredient.Category)</div>
-                                    <div>
-                                        <h3 class="font-bold text-gray-900">@ingredient.Name</h3>
-                                        <p class="text-sm text-gray-600">@ingredient.Category</p>
-                                    </div>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="flex-1">
+                                    <h4 class="font-bold text-white font-poppins text-lg">@ingredient.Name</h4>
+                                    <p class="text-gray-300 font-inter text-sm">@ingredient.Category.ToString()</p>
                                 </div>
                                 <div class="flex items-center space-x-2">
-                                    <div class="@(ingredient.IsAvailable ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800") px-2 py-1 rounded-full text-xs font-bold">
-                                        @(ingredient.IsAvailable ? "Available" : "Out of Stock")
-                                    </div>
-                                </div>
+                                    @if (ingredient.StockQuantity < 10)
+                                    {
+                                        <span class="bg-red-500/20 text-red-300 text-xs font-semibold px-2 py-1 rounded-full border border-red-500/30 font-inter">Low Stock</span>
+                                    }
+                                    @if (!ingredient.IsAvailable)
+                                    {
+                                        <span class="bg-gray-500/20 text-gray-300 text-xs font-semibold px-2 py-1 rounded-full border border-gray-500/30 font-inter">Unavailable</span>
+                                    }
                             </div>
                         </div>
 
-                        <!-- Ingredient Content -->
-                        <div class="px-6 py-4">
-                            <div class="space-y-3">
-                                <!-- Price -->
+                            <div class="space-y-3 mb-4">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-sm text-gray-600">Price per serving:</span>
-                                    <span class="font-bold text-lg text-gray-900">€@ingredient.Price.ToString("F2")</span>
+                                    <span class="text-gray-300 font-inter text-sm">Price:</span>
+                                    <span class="text-xl font-bold text-white font-poppins">€@ingredient.AdditionalPrice.ToString("F2")</span>
                                 </div>
-
-                                @if (!string.IsNullOrEmpty(ingredient.Description))
-                                {
-                                    <div>
-                                        <p class="text-sm text-gray-600">@ingredient.Description</p>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-300 font-inter text-sm">Stock:</span>
+                                    <span class="text-lg font-semibold @(ingredient.StockQuantity < 10 ? "text-red-400" : "text-green-400") font-poppins">@ingredient.StockQuantity</span>
                                     </div>
-                                }
-
-                                @if (ingredient.Allergens?.Any() == true)
-                                {
-                                    <div>
-                                        <p class="text-xs font-semibold text-red-500 mb-1">ALLERGENS:</p>
-                                        <div class="flex flex-wrap gap-1">
-                                            @foreach (var allergen in ingredient.Allergens)
-                                            {
-                                                <span class="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded">@allergen</span>
-                                            }
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-300 font-inter text-sm">Status:</span>
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-3 h-3 @(ingredient.IsAvailable ? "bg-green-500" : "bg-red-500") rounded-full"></div>
+                                        <span class="text-sm text-gray-300 font-inter">@(ingredient.IsAvailable ? "Available" : "Unavailable")</span>
                                         </div>
-                                    </div>
-                                }
-
-                                <!-- Nutritional Info -->
-                                @if (ingredient.Calories > 0 || ingredient.IsVegan || ingredient.IsGlutenFree)
-                                {
-                                    <div class="border-t pt-3">
-                                        <div class="flex flex-wrap gap-2">
-                                            @if (ingredient.Calories > 0)
-                                            {
-                                                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">@ingredient.Calories kcal</span>
-                                            }
-                                            @if (ingredient.IsVegan)
-                                            {
-                                                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">🌱 Vegan</span>
-                                            }
-                                            @if (ingredient.IsGlutenFree)
-                                            {
-                                                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">🌾 Gluten-Free</span>
-                                            }
-                                        </div>
-                                    </div>
-                                }
                             </div>
                         </div>
 
-                        <!-- Actions -->
-                        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                            <div class="flex flex-wrap gap-2 justify-between">
-                                <div class="flex gap-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <button @onclick="() => EditIngredient(ingredient)" 
+                                        class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-3 rounded-lg transition-all duration-200 font-poppins text-sm cursor-pointer">
+                                    Edit
+                                </button>
                                     <button @onclick="() => ToggleAvailability(ingredient)" 
-                                            class="@(ingredient.IsAvailable ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700") text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                                        @(ingredient.IsAvailable ? "Mark Unavailable" : "Mark Available")
-                                    </button>
-                                    <button @onclick="() => ShowEditIngredientModal(ingredient)" 
-                                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                                <button @onclick="() => DeleteIngredient(ingredient)" 
-                                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                    </svg>
+                                        class="flex-1 @(ingredient.IsAvailable ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600") text-white font-medium py-2 px-3 rounded-lg transition-all duration-200 font-poppins text-sm cursor-pointer">
+                                    @(ingredient.IsAvailable ? "Disable" : "Enable")
                                 </button>
                             </div>
                         </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-12">
+                    <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-4xl">🥕</span>
+                    </div>
+                    <h4 class="text-xl font-semibold text-white mb-2 font-poppins">No ingredients found</h4>
+                    <p class="text-gray-300 font-inter">@(selectedCategory != null ? $"No {selectedCategory} ingredients available." : "Add your first ingredient to get started!")</p>
                     </div>
                 }
             </div>
-        }
     </div>
-
-    <!-- Add/Edit Ingredient Modal -->
-    @if (showModal)
-    {
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-screen overflow-y-auto">
-                <div class="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4">
-                    <h3 class="text-xl font-bold">@(isEditMode ? "Edit Ingredient" : "Add New Ingredient")</h3>
                 </div>
                 
-                <div class="p-6">
+@if (showEditor)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="glass-effect rounded-2xl shadow-professional w-full max-w-md mx-4 p-6">
+            <h3 class="text-xl font-bold text-white font-poppins mb-4">@(editingIngredient.Id > 0 ? "Edit Ingredient" : "Add New Ingredient")</h3>
                     <div class="space-y-4">
-                        <!-- Name -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Ingredient Name</label>
-                            <input @bind="currentIngredient.Name" type="text" required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" 
-                                   placeholder="e.g., Fresh Tuna" />
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Name</label>
+                    <input class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400" @bind="editingIngredient.Name" placeholder="Ingredient name" />
                         </div>
-
-                        <!-- Category -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                            <select @bind="currentIngredient.Category" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                                @foreach (var category in Enum.GetValues<IngredientCategory>())
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Category</label>
+                    <select class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" @bind="editingIngredient.Category">
+                        @foreach (var category in categories)
                                 {
-                                    <option value="@category">@GetCategoryIcon(category) @category</option>
+                            <option value="@category" class="bg-gray-800 text-white">@category.ToString()</option>
                                 }
                             </select>
                         </div>
-
-                        <!-- Price -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Price per serving (€)</label>
-                            <input @bind="currentIngredient.AdditionalPrice" type="number" step="0.01" min="0" required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" 
-                                   placeholder="0.00" />
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Price (€)</label>
+                    <input type="number" step="0.01" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" @bind-value="editingIngredient.AdditionalPrice" @bind-value:event="onchange" />
                         </div>
-
-                        <!-- Description -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
-                            <textarea @bind="currentIngredient.Description" rows="3"
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" 
-                                      placeholder="Brief description..."></textarea>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Stock</label>
+                    <input type="number" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" @bind-value="editingIngredient.StockQuantity" @bind-value:event="onchange" />
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" @bind="editingIngredient.IsAvailable" id="available-checkbox" class="rounded" />
+                    <label for="available-checkbox" class="text-gray-300">Available</label>
+                </div>
                         </div>
-
-                        <!-- Checkboxes -->
-                        <div class="space-y-2">
-                            <label class="flex items-center">
-                                <input @bind="currentIngredient.IsAvailable" type="checkbox" class="mr-2" />
-                                <span class="text-sm text-gray-700">Available in stock</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input @bind="currentIngredient.IsVegan" type="checkbox" class="mr-2" />
-                                <span class="text-sm text-gray-700">🌱 Vegan</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input @bind="currentIngredient.IsGlutenFree" type="checkbox" class="mr-2" />
-                                <span class="text-sm text-gray-700">🌾 Gluten-Free</span>
-                            </label>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white hover:scale-105 hover:shadow-lg transition-all duration-300 ease-in-out transform active:scale-95 cursor-pointer" @onclick="CloseEditor">Cancel</button>
+                <button class="px-4 py-2 rounded-lg bg-gradient-to-r from-royal-purple to-pink-primary text-white hover:from-royal-purple/80 hover:to-pink-primary/80 hover:scale-105 hover:shadow-xl hover:shadow-royal-purple/30 transition-all duration-300 ease-in-out transform active:scale-95 cursor-pointer" @onclick="SaveIngredient">Save</button>
                         </div>
-
-                        <!-- Calories -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Calories per serving (Optional)</label>
-                            <input @bind="currentIngredient.Calories" type="number" min="0"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" 
-                                   placeholder="e.g., 45" />
                         </div>
                     </div>
+}
 
-                    <div class="flex gap-4 mt-6">
-                        <button @onclick="SaveIngredient" disabled="@isLoading"
-                                class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
-                            @(isLoading ? "Saving..." : (isEditMode ? "Update Ingredient" : "Add Ingredient"))
-                        </button>
-                        <button @onclick="CloseModal"
-                                class="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium transition-colors">
-                            Cancel
-                        </button>
+<!-- Success Toast Notification -->
+@if (showSuccessToast)
+{
+    <div class="fixed top-4 right-4 z-50 transform transition-all duration-500 ease-in-out @(showSuccessToast ? "translate-x-0 opacity-100" : "translate-x-full opacity-0")">
+        <div class="@(isSuccessToast ? "bg-gradient-to-r from-green-500 to-emerald-600" : "bg-gradient-to-r from-red-500 to-red-600") text-white px-6 py-4 rounded-lg shadow-xl border @(isSuccessToast ? "border-green-400/20" : "border-red-400/20") backdrop-blur-sm">
+            <div class="flex items-center space-x-3">
+                <div class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                    @if (isSuccessToast)
+                    {
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    }
+                    else
+                    {
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    }
+                </div>
+                <div>
+                    <p class="font-semibold font-poppins">@toastMessage</p>
+                    <p class="text-sm @(isSuccessToast ? "text-green-100" : "text-red-100") font-inter">@(isSuccessToast ? "Changes saved successfully" : "Please try again")</p>
                     </div>
                 </div>
             </div>
         </div>
     }
-</AuthGuard>
 
+@implements IDisposable
 @code {
-    private List<Ingredient> allIngredients = new();
+    private List<Ingredient> ingredients = new();
     private List<Ingredient> filteredIngredients = new();
+    private List<IngredientCategory> categories = new();
     private IngredientCategory? selectedCategory = null;
     private bool isLoading = true;
-    private bool showModal = false;
-    private bool isEditMode = false;
-    private Ingredient currentIngredient = new();
+    private bool showEditor = false;
+    private Ingredient editingIngredient = new();
+    private bool showSuccessToast = false;
+    private bool isSuccessToast = true;
+    private string toastMessage = "";
+    private Timer? toastTimer;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadIngredients();
+        await LoadIngredientData();
     }
 
-    private async Task LoadIngredients()
+    private async Task LoadIngredientData()
     {
         try
         {
             isLoading = true;
-            allIngredients = await ApiService.GetIngredientsAsync();
-            ApplyFilter();
+            ingredients = await AdminApiService.GetIngredientsAsync();
+            categories = Enum.GetValues<IngredientCategory>().ToList();
+            FilterByCategory(selectedCategory);
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("console.error", "Error loading ingredients:", ex.Message);
+            Console.WriteLine($"Error loading ingredient data: {ex.Message}");
         }
         finally
         {
@@ -302,89 +326,86 @@
         }
     }
 
-    private async Task RefreshIngredients()
-    {
-        await LoadIngredients();
-    }
-
-    private void SetCategoryFilter(IngredientCategory? category)
+    private void FilterByCategory(IngredientCategory? category)
     {
         selectedCategory = category;
-        ApplyFilter();
+        if (category == null)
+    {
+            filteredIngredients = ingredients;
+        }
+        else
+        {
+            filteredIngredients = ingredients.Where(i => i.Category == category).ToList();
+        }
+        StateHasChanged();
     }
 
-    private void ApplyFilter()
+    private void ShowAddModal()
     {
-        filteredIngredients = selectedCategory.HasValue 
-            ? allIngredients.Where(i => i.Category == selectedCategory.Value).ToList()
-            : allIngredients;
+        editingIngredient = new Ingredient();
+        showEditor = true;
     }
 
-    private void ShowAddIngredientModal()
+    private void EditIngredient(Ingredient ingredient)
     {
-        currentIngredient = new Ingredient { IsAvailable = true };
-        isEditMode = false;
-        showModal = true;
-    }
-
-    private void ShowEditIngredientModal(Ingredient ingredient)
-    {
-        currentIngredient = new Ingredient
+        editingIngredient = new Ingredient
         {
             Id = ingredient.Id,
             Name = ingredient.Name,
             Category = ingredient.Category,
             AdditionalPrice = ingredient.AdditionalPrice,
-            Description = ingredient.Description,
-            IsAvailable = ingredient.IsAvailable,
-            IsVegan = ingredient.IsVegan,
-            IsGlutenFree = ingredient.IsGlutenFree,
-            Calories = ingredient.Calories,
-            Allergens = ingredient.Allergens?.ToList() ?? new List<string>()
+            StockQuantity = ingredient.StockQuantity,
+            IsAvailable = ingredient.IsAvailable
         };
-        isEditMode = true;
-        showModal = true;
+        showEditor = true;
     }
 
-    private void CloseModal()
+    private void CloseEditor()
     {
-        showModal = false;
-        currentIngredient = new();
+        showEditor = false;
     }
 
     private async Task SaveIngredient()
     {
-        if (string.IsNullOrWhiteSpace(currentIngredient.Name) || currentIngredient.AdditionalPrice <= 0)
+        var saved = await AdminApiService.SaveIngredientAsync(editingIngredient);
+        if (saved != null)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Please fill in all required fields with valid values.");
-            return;
-        }
-
-        try
-        {
-            isLoading = true;
-            bool success = isEditMode 
-                ? await ApiService.UpdateIngredientAsync(currentIngredient.Id, currentIngredient)
-                : await ApiService.CreateIngredientAsync(currentIngredient);
-
-            if (success)
+            var idx = ingredients.FindIndex(i => i.Id == saved.Id);
+            if (idx >= 0) ingredients[idx] = saved; else ingredients.Add(saved);
+            showEditor = false;
+            FilterByCategory(selectedCategory);
+            
+            // Show success toast
+            toastMessage = editingIngredient.Id > 0 ? "Ingredient updated successfully!" : "Ingredient created successfully!";
+            showSuccessToast = true;
+            isSuccessToast = true;
+            StateHasChanged();
+            
+            // Hide toast after 3 seconds
+            toastTimer?.Dispose(); // Clean up any existing timer
+            toastTimer = new Timer(async _ =>
             {
-                await LoadIngredients();
-                CloseModal();
-                await JSRuntime.InvokeVoidAsync("alert", $"Ingredient {(isEditMode ? "updated" : "added")} successfully!");
+                showSuccessToast = false;
+                await InvokeAsync(StateHasChanged);
+                toastTimer?.Dispose();
+            }, null, 3000, Timeout.Infinite);
             }
             else
             {
-                await JSRuntime.InvokeVoidAsync("alert", $"Failed to {(isEditMode ? "update" : "add")} ingredient.");
-            }
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
+            // Show error toast if save failed
+            toastMessage = "Failed to save ingredient";
+            showSuccessToast = true;
+            isSuccessToast = false;
+            StateHasChanged();
+            
+            // Hide error toast after 3 seconds
+            toastTimer?.Dispose();
+            toastTimer = new Timer(async _ =>
+            {
+                showSuccessToast = false;
+                await InvokeAsync(StateHasChanged);
+                toastTimer?.Dispose();
+            }, null, 3000, Timeout.Infinite);
         }
     }
 
@@ -392,59 +413,25 @@
     {
         try
         {
-            var success = await ApiService.ToggleIngredientAvailabilityAsync(ingredient.Id, !ingredient.IsAvailable);
-            if (success)
+            var ok = await AdminApiService.ToggleIngredientAvailabilityAsync(ingredient.Id);
+            if (ok)
             {
-                await LoadIngredients();
-                var status = !ingredient.IsAvailable ? "available" : "unavailable";
-                await JSRuntime.InvokeVoidAsync("alert", $"{ingredient.Name} marked as {status}.");
+                ingredient.IsAvailable = !ingredient.IsAvailable;
             }
+            else
+            {
+                Console.WriteLine("Toggle ingredient availability failed");
+            }
+            StateHasChanged();
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error updating availability: {ex.Message}");
+            Console.WriteLine($"Error toggling ingredient availability: {ex.Message}");
         }
     }
 
-    private async Task DeleteIngredient(Ingredient ingredient)
+    public void Dispose()
     {
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete '{ingredient.Name}'?");
-        if (confirmed)
-        {
-            try
-            {
-                // Since we don't have a delete endpoint, we'll mark as unavailable
-                var success = await ApiService.ToggleIngredientAvailabilityAsync(ingredient.Id, false);
-                if (success)
-                {
-                    await LoadIngredients();
-                    await JSRuntime.InvokeVoidAsync("alert", $"{ingredient.Name} has been removed from the menu.");
-                }
-            }
-            catch (Exception ex)
-            {
-                await JSRuntime.InvokeVoidAsync("alert", $"Error deleting ingredient: {ex.Message}");
-            }
-        }
+        toastTimer?.Dispose();
     }
-
-    private string GetCategoryIcon(IngredientCategory category) => category switch
-    {
-        IngredientCategory.Protein => "🐟",
-        IngredientCategory.Vegetable => "🥬",
-        IngredientCategory.Sauce => "🥄",
-        IngredientCategory.Extra => "✨",
-        IngredientCategory.Wrapper => "🌾",
-        _ => "🥬"
-    };
-
-    private string GetCategoryHeaderClass(IngredientCategory category) => category switch
-    {
-        IngredientCategory.Protein => "bg-red-50",
-        IngredientCategory.Vegetable => "bg-green-50",
-        IngredientCategory.Sauce => "bg-yellow-50",
-        IngredientCategory.Extra => "bg-purple-50",
-        IngredientCategory.Wrapper => "bg-orange-50",
-        _ => "bg-gray-50"
-    };
 } 

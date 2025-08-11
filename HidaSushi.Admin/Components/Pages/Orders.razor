@@ -1,0 +1,469 @@
+@page "/orders"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using HidaSushi.Admin.Services
+@inject AdminApiService AdminApiService
+@inject NavigationManager Navigation
+
+<PageTitle>Order Management - HIDA SUSHI</PageTitle>
+
+<div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+    <!-- Animated background shapes -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-40 left-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Header Section -->
+    <div class="relative z-10 bg-gradient-to-r from-royal-purple via-pink-primary to-deep-purple shadow-professional">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm animate-bounce">
+                        <span class="text-3xl">📋</span>
+                    </div>
+                    <div>
+                        <h1 class="text-4xl font-bold text-white mb-2 font-poppins">Order Management</h1>
+                        <p class="text-light-purple text-lg font-inter">Track and manage customer orders</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <button @onclick="@(() => Navigation.NavigateTo("/admin"))" 
+                            class="bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm font-poppins cursor-pointer">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            Back to Dashboard
+                        </span>
+                    </button>
+                    <div class="text-right text-white">
+                        <p class="text-sm opacity-80 font-inter">@DateTime.Now.ToString("MMMM dd, yyyy")</p>
+                        <p class="text-lg font-semibold font-poppins">@DateTime.Now.ToString("HH:mm")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Total Orders</p>
+                        <p class="text-3xl font-bold text-white font-poppins">@orders.Count</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">📊</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Pending</p>
+                        <p class="text-3xl font-bold text-yellow-400 font-poppins">@orders.Count(o => o.Status == OrderStatus.Received)</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">⏰</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Completed</p>
+                        <p class="text-3xl font-bold text-green-400 font-poppins">@orders.Count(o => o.Status == OrderStatus.Completed)</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">✅</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-effect rounded-2xl shadow-professional p-6 transform transition-all duration-300 hover:scale-105 hover-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-300 font-inter">Today's Revenue</p>
+                        <p class="text-3xl font-bold text-blue-400 font-poppins">€@todayRevenue.ToString("F2")</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-500/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <span class="text-2xl">💰</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders List -->
+        <div class="glass-effect rounded-2xl shadow-professional p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-white font-poppins">Recent Orders</h3>
+                <div class="w-12 h-1 bg-gradient-to-r from-royal-purple to-pink-primary rounded-full"></div>
+            </div>
+            
+            @if (isLoading)
+            {
+                <div class="flex items-center justify-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-royal-purple"></div>
+                    <span class="ml-3 text-gray-300 font-inter">Loading orders...</span>
+                </div>
+            }
+            else if (orders.Any())
+            {
+                <div class="space-y-4">
+                    @foreach (var order in orders.Take(10))
+                    {
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-gradient-to-r from-royal-purple to-pink-primary rounded-full flex items-center justify-center">
+                                        <span class="text-white font-bold">#</span>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-white font-poppins">Order #@order.OrderNumber</h4>
+                                        <p class="text-gray-300 font-inter text-sm">@order.CustomerName</p>
+                                        <p class="text-gray-400 font-inter text-xs">@order.CreatedAt.ToString("MMM dd, yyyy HH:mm")</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-2xl font-bold text-white font-poppins">€@order.TotalAmount.ToString("F2")</span>
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold @GetStatusClass(order.Status) font-inter">
+                                        @order.Status.ToString()
+                                    </span>
+                                    <div class="flex items-center space-x-2">
+                                        @if (order.Status == OrderStatus.Received)
+                                        {
+                                            <button @onclick="() => UpdateOrderStatus(order, OrderStatus.InPreparation)" 
+                                                    class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-1 px-3 rounded-lg transition-all duration-200 font-poppins text-xs">
+                                                Start
+                                            </button>
+                                        }
+                                        @if (order.Status == OrderStatus.InPreparation)
+                                        {
+                                            <button @onclick="() => UpdateOrderStatus(order, OrderStatus.Ready)" 
+                                                    class="bg-purple-500 hover:bg-purple-600 text-white font-medium py-1 px-3 rounded-lg transition-all duration-200 font-poppins text-xs">
+                                                Ready
+                                            </button>
+                                        }
+                                        @if (order.Status == OrderStatus.Ready)
+                                        {
+                                            <button @onclick="() => UpdateOrderStatus(order, OrderStatus.Completed)" 
+                                                    class="bg-green-500 hover:bg-green-600 text-white font-medium py-1 px-3 rounded-lg transition-all duration-200 font-poppins text-xs">
+                                                Complete
+                                            </button>
+                                        }
+                                        <button @onclick="() => ViewOrderDetails(order)" 
+                                                class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-1 px-3 rounded-lg transition-all duration-200 font-poppins text-xs">
+                                            Details
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-12">
+                    <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-4xl">📋</span>
+                    </div>
+                    <h4 class="text-xl font-semibold text-white mb-2 font-poppins">No orders yet</h4>
+                    <p class="text-gray-300 font-inter">Orders will appear here as they come in!</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+@if (showOrderDetails && selectedOrder != null)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="glass-effect rounded-2xl shadow-professional w-full max-w-2xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-white font-poppins">Order Details</h3>
+                <button @onclick="CloseOrderDetails" 
+                        class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Order Header -->
+            <div class="bg-white/10 rounded-xl p-6 mb-6 border border-white/20">
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-bold text-white font-poppins text-lg mb-3">Order Information</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-300 font-inter">Order #:</span>
+                                <span class="text-white font-bold">#@selectedOrder.OrderNumber</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300 font-inter">Customer:</span>
+                                <span class="text-white">@selectedOrder.CustomerName</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300 font-inter">Date:</span>
+                                <span class="text-white">@selectedOrder.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300 font-inter">Status:</span>
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold @GetStatusClass(selectedOrder.Status)">
+                                    @selectedOrder.Status.ToString()
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white font-poppins text-lg mb-3">Delivery Information</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-300 font-inter">Type:</span>
+                                <span class="text-white">@(selectedOrder.Type == OrderType.Delivery ? "Delivery" : "Pickup")</span>
+                            </div>
+                            @if (selectedOrder.Type == OrderType.Delivery)
+                            {
+                                <div class="flex justify-between">
+                                    <span class="text-gray-300 font-inter">Address:</span>
+                                    <span class="text-white text-sm">@selectedOrder.DeliveryAddress</span>
+                                </div>
+                            }
+                            <div class="flex justify-between">
+                                <span class="text-gray-300 font-inter">Phone:</span>
+                                <span class="text-white">@selectedOrder.CustomerPhone</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300 font-inter">Email:</span>
+                                <span class="text-white text-sm">@selectedOrder.CustomerEmail</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Items -->
+            <div class="bg-white/10 rounded-xl p-6 mb-6 border border-white/20">
+                <h4 class="font-bold text-white font-poppins text-lg mb-4">Order Items</h4>
+                <div class="space-y-3">
+                    @if (selectedOrder.Items?.Any() == true)
+                    {
+                        @foreach (var item in selectedOrder.Items)
+                        {
+                            <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                                <div class="flex-1">
+                                    <h5 class="font-medium text-white font-inter">@(item.SushiRoll?.Name ?? item.CustomRoll?.Name ?? "Unknown Item")</h5>
+                                    @if (!string.IsNullOrEmpty(item.SpecialInstructions))
+                                    {
+                                        <p class="text-sm text-gray-400 font-inter mt-1">Note: @item.SpecialInstructions</p>
+                                    }
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-white font-bold">@item.Quantity x €@item.UnitPrice.ToString("F2")</span>
+                                    <p class="text-sm text-gray-300">€@(item.Quantity * item.UnitPrice).ToString("F2")</p>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-gray-400 text-center py-4">No items found</p>
+                    }
+                </div>
+            </div>
+            
+            <!-- Order Total -->
+            <div class="bg-white/10 rounded-xl p-6 border border-white/20">
+                <div class="flex justify-between items-center">
+                    <h4 class="font-bold text-white font-poppins text-xl">Total Amount</h4>
+                    <span class="text-3xl font-bold text-green-400 font-poppins">€@selectedOrder.TotalAmount.ToString("F2")</span>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="mt-6 flex justify-end space-x-3">
+                <button @onclick="CloseOrderDetails" 
+                        class="px-6 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-all duration-300 font-poppins cursor-pointer">
+                    Close
+                </button>
+                @if (selectedOrder.Status != OrderStatus.Completed && selectedOrder.Status != OrderStatus.Cancelled)
+                {
+                    <button @onclick="() => UpdateOrderStatusFromModal(GetNextStatus(selectedOrder.Status))" 
+                            class="px-6 py-2 rounded-lg bg-gradient-to-r from-royal-purple to-pink-primary text-white hover:opacity-90 transition-opacity font-poppins cursor-pointer">
+                        @GetNextStatusText(selectedOrder.Status)
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Order> orders = new();
+    private bool isLoading = true;
+    private decimal todayRevenue = 0;
+    private bool showOrderDetails = false;
+    private Order? selectedOrder;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrderData();
+    }
+
+    private async Task LoadOrderData()
+    {
+        try
+        {
+            isLoading = true;
+            orders = await AdminApiService.GetOrdersAsync();
+            
+            // Calculate today's revenue
+            var today = DateTime.Today;
+            todayRevenue = orders
+                .Where(o => o.CreatedAt.Date == today && o.Status == OrderStatus.Completed)
+                .Sum(o => o.TotalAmount);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading order data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetStatusClass(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.Received => "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30",
+            OrderStatus.Accepted => "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+            OrderStatus.InPreparation => "bg-orange-500/20 text-orange-300 border border-orange-500/30",
+            OrderStatus.Ready => "bg-purple-500/20 text-purple-300 border border-purple-500/30",
+            OrderStatus.OutForDelivery => "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30",
+            OrderStatus.Completed => "bg-green-500/20 text-green-300 border border-green-500/30",
+            OrderStatus.Cancelled => "bg-red-500/20 text-red-300 border border-red-500/30",
+            _ => "bg-gray-500/20 text-gray-300 border border-gray-500/30"
+        };
+    }
+
+    private async Task UpdateOrderStatus(Order order, OrderStatus newStatus)
+    {
+        try
+        {
+            var success = await AdminApiService.UpdateOrderStatusAsync(order.Id, newStatus);
+            if (success)
+            {
+                order.Status = newStatus;
+                
+                // Recalculate today's revenue if order completed
+                if (newStatus == OrderStatus.Completed)
+                {
+                    var today = DateTime.Today;
+                    todayRevenue = orders
+                        .Where(o => o.CreatedAt.Date == today && o.Status == OrderStatus.Completed)
+                        .Sum(o => o.TotalAmount);
+                }
+                StateHasChanged();
+            }
+            else
+            {
+                Console.WriteLine("Failed to update order status");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating order status: {ex.Message}");
+        }
+    }
+
+    private async Task ViewOrderDetails(Order order)
+    {
+        try
+        {
+            selectedOrder = await AdminApiService.GetOrderByIdAsync(order.Id);
+            if (selectedOrder != null)
+            {
+                showOrderDetails = true;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting order details: {ex.Message}");
+        }
+    }
+
+    private void CloseOrderDetails()
+    {
+        showOrderDetails = false;
+        selectedOrder = null;
+        StateHasChanged();
+    }
+
+    private OrderStatus GetNextStatus(OrderStatus currentStatus)
+    {
+        return currentStatus switch
+        {
+            OrderStatus.Received => OrderStatus.InPreparation,
+            OrderStatus.InPreparation => OrderStatus.Ready,
+            OrderStatus.Ready => OrderStatus.Completed,
+            _ => currentStatus // Default or handle unexpected statuses
+        };
+    }
+
+    private string GetNextStatusText(OrderStatus currentStatus)
+    {
+        return currentStatus switch
+        {
+            OrderStatus.Received => "Start",
+            OrderStatus.InPreparation => "Ready",
+            OrderStatus.Ready => "Complete",
+            _ => "Unknown"
+        };
+    }
+
+    private async Task UpdateOrderStatusFromModal(OrderStatus newStatus)
+    {
+        if (selectedOrder != null)
+        {
+            try
+            {
+                var success = await AdminApiService.UpdateOrderStatusAsync(selectedOrder.Id, newStatus);
+                if (success)
+                {
+                    selectedOrder.Status = newStatus;
+                    
+                    // Recalculate today's revenue if order completed
+                    if (newStatus == OrderStatus.Completed)
+                    {
+                        var today = DateTime.Today;
+                        todayRevenue = orders
+                            .Where(o => o.CreatedAt.Date == today && o.Status == OrderStatus.Completed)
+                            .Sum(o => o.TotalAmount);
+                    }
+                    StateHasChanged();
+                    CloseOrderDetails();
+                }
+                else
+                {
+                    Console.WriteLine("Failed to update order status from modal");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating order status from modal: {ex.Message}");
+            }
+        }
+    }
+} 

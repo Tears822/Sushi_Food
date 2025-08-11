@@ -1,0 +1,197 @@
+Perfect — here is a detailed software specification you can share with your three developers. This describes exactly what you need for your sushi business, “HIDA SUSHI – Sushi by Jonathan,” including client and admin UI, real-time order tracking, and a build-your-own-roll configurator.
+
+🧾 Project Specification: HIDA SUSHI – Sushi by Jonathan
+🔧 System Overview
+HIDA SUSHI is a premium sushi delivery & pickup platform that allows customers to:
+
+Order from a curated signature roll menu
+
+Build their own custom sushi roll from a list of ingredients
+
+Place orders for delivery or pickup
+
+Track their order status in real time
+
+Staff will use a real-time admin dashboard to:
+
+View incoming orders live
+
+Mark orders as “in preparation”, “ready”, or “completed”
+
+Access order history
+
+Manage menu items, pricing, and ingredient availability
+
+🧑‍🍳 1. Client-Facing Web App
+🧭 Key Pages & Features
+1.1. Homepage
+Logo: “HIDA SUSHI – Sushi by Jonathan”
+
+Taglines like: “Make Your Own Sushi” or “Signature Rolls with a Story”
+
+Hero Image or Gallery (Photos of actual rolls)
+
+Links to:
+
+“Order Now” → Menu
+
+“About the Chef” → Jonathan bio
+
+“Contact & Hours”
+
+“Instagram Feed” (auto-pull via embed)
+
+🍣 1.2. Menu Page
+1.2.1 Signature Rolls (Static Menu)
+Display 2–5 Signature Rolls
+
+🐉 Taylor Swift – Tortured Poets Dragon Roll (€13)
+
+🐦 Blackbird Rainbow Roll (€11)
+
+👑 M&M “Beautiful” Roll (€13)
+
+🌱 Garden of Eden Veggie Roll (€7)
+
+Show ingredients, allergens, and image for each
+
+Click → “Add to Cart”
+
+1.2.2 Build Your Own Roll
+Step-by-step configurator (pizza-style):
+
+Choose:
+
+Normal Roll / Inside-Out Roll / Cucumber Wrap (greyed out if not supported yet)
+
+Ingredients (select max # per category):
+
+Base (Rice - default)
+
+Protein (Tuna, Salmon, Crab, Shrimp, Egg, Tofu, etc.)
+
+Vegetables (Avocado, Cucumber, Carrot, etc.)
+
+Extras: Goat Cheese (+€1), Fried Onions, Mango, etc.
+
+Toppings (e.g., Sesame Seeds, Teriyaki Glaze)
+
+Sauces (Spicy Mayo, Soy Sauce, Wasabi, etc.)
+
+Pricing auto-updates live (e.g., €17–€19 range)
+
+🛒 1.3. Cart & Checkout
+Review items, change quantity or delete
+
+Enter delivery address or choose pickup
+
+Choose payment method:
+
+Stripe (card, Apple Pay)
+
+Cash on delivery
+
+Optional: GodPay
+
+Confirm order → shows confirmation & order tracking ID
+
+🧾 1.4. Order Tracking
+Order ID page (public)
+
+Shows stages:
+
+✅ Received
+
+🍣 In Preparation
+
+📦 Ready for Pickup
+
+🛵 Out for Delivery
+
+✔️ Completed
+
+🔐 2. Admin Dashboard (Back Office)
+🖥️ Live Order Feed
+Live list of incoming orders with timestamps
+
+View details:
+
+Roll Type (Signature or Custom)
+
+All chosen ingredients
+
+Notes (e.g., “no wasabi”)
+
+Payment status
+
+Staff can update status:
+
+“Accepted” → “In Preparation” → “Ready” → “Out for Delivery” → “Completed”
+
+🧰 Menu Management
+Add/remove/update signature rolls
+
+Enable/disable ingredients (for inventory)
+
+Set ingredient-based pricing logic (e.g., +€1 for goat cheese)
+
+🧑‍💻 User Management
+Admins can log in with username/password
+
+View previous orders & filter by:
+
+Date
+
+Customer name
+
+Order type (pickup/delivery)
+
+📈 Analytics (optional in v2)
+Daily sales
+
+Most popular ingredients
+
+Avg. prep time per roll
+
+🖼️ Design & Branding
+Color scheme: Purple & Gold (royal, elegant)
+
+Font: Modern but artistic
+
+Imagery: Real photos of actual rolls (Jonathan’s sushi)
+
+Logo: Already generated, labeled “HIDA SUSHI – Sushi by Jonathan”
+
+📱 Tech Stack Recommendation (Optional)
+Frontend: Angular / React
+
+Backend API: ASP.NET Core (.NET 8)
+
+Database: SQL Server / PostgreSQL
+
+Authentication: JWT-based (admin only)
+
+Hosting: Azure App Service / Vercel
+
+Payment Gateway: Stripe (plugin)
+
+Notifications: Email confirmations, optional SMS
+
+🚀 Delivery Roadmap (Suggested)
+Milestone	Description
+Week 1	Static frontend for Signature Menu + Cart
+Week 2	Build-Your-Own-Roll functionality
+Week 3	Admin UI for order management
+Week 4	Real-time updates + Stripe checkout
+Week 5	Launch MVP with hosting, SEO, mobile-optimization
+
+📸 What’s Next?
+Please send me:
+
+Photos of your sushi (I'll integrate into layout)
+
+Any naming for new rolls you want listed
+
+Hosting details (we can deploy to godpay.world/sushi if needed)
+
+Would you like this converted into a downloadable PDF Project Brief to share with the team?

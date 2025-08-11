@@ -209,4 +209,39 @@ public class OrderService
         _context.OrderStatusHistory.Add(history);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<bool> UpdatePaymentStatusAsync(int orderId, PaymentStatus status, string? transactionId = null)
+    {
+        try
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+            if (order == null)
+            {
+                _logger.LogWarning("Order {OrderId} not found for payment status update", orderId);
+                return false;
+            }
+
+            order.PaymentStatus = status;
+            if (!string.IsNullOrEmpty(transactionId))
+            {
+                order.PaymentReference = transactionId;
+            }
+            order.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Order {OrderId} payment status updated to {PaymentStatus}, transaction: {TransactionId}",
+                orderId, status, transactionId);
+
+            // Notify admin via SignalR
+            await _orderHub.Clients.Group("Admins").SendAsync("PaymentStatusUpdated", order);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating payment status for order {OrderId}", orderId);
+            return false;
+        }
+    }
 } 

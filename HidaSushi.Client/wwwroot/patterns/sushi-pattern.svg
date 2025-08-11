@@ -1,0 +1,63 @@
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient for sushi roll -->
+    <radialGradient id="salmonGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#ff3333;stop-opacity:0.1" />
+    </radialGradient>
+    
+    <!-- Gradient for rice -->
+    <linearGradient id="riceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8f9fa;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#e9ecef;stop-opacity:0.1" />
+    </linearGradient>
+    
+    <!-- Gradient for nori (seaweed) -->
+    <linearGradient id="noriGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d3436;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#636e72;stop-opacity:0.1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="200" height="200" fill="transparent"/>
+  
+  <!-- Sushi Roll 1 -->
+  <g transform="translate(30, 30)">
+    <!-- Nori (outer layer) -->
+    <circle cx="15" cy="15" r="12" fill="url(#noriGradient)" stroke="#2d3436" stroke-width="0.5" opacity="0.3"/>
+    <!-- Rice layer -->
+    <circle cx="15" cy="15" r="9" fill="url(#riceGradient)" stroke="#f8f9fa" stroke-width="0.3" opacity="0.4"/>
+    <!-- Salmon center -->
+    <circle cx="15" cy="15" r="5" fill="url(#salmonGradient)" opacity="0.5"/>
+  </g>
+  
+  <!-- Sushi Roll 2 -->
+  <g transform="translate(120, 80)">
+    <circle cx="15" cy="15" r="12" fill="url(#noriGradient)" stroke="#2d3436" stroke-width="0.5" opacity="0.3"/>
+    <circle cx="15" cy="15" r="9" fill="url(#riceGradient)" stroke="#f8f9fa" stroke-width="0.3" opacity="0.4"/>
+    <circle cx="15" cy="15" r="5" fill="url(#salmonGradient)" opacity="0.5"/>
+  </g>
+  
+  <!-- Chopsticks -->
+  <g transform="translate(60, 120) rotate(45)">
+    <rect x="0" y="0" width="60" height="2" fill="#8b4513" opacity="0.2" rx="1"/>
+    <rect x="0" y="5" width="60" height="2" fill="#8b4513" opacity="0.2" rx="1"/>
+  </g>
+  
+  <!-- Rice grains scattered -->
+  <circle cx="70" cy="40" r="1.5" fill="url(#riceGradient)" opacity="0.3"/>
+  <circle cx="85" cy="55" r="1" fill="url(#riceGradient)" opacity="0.25"/>
+  <circle cx="45" cy="70" r="1.2" fill="url(#riceGradient)" opacity="0.3"/>
+  <circle cx="160" cy="30" r="1" fill="url(#riceGradient)" opacity="0.25"/>
+  <circle cx="180" cy="150" r="1.5" fill="url(#riceGradient)" opacity="0.3"/>
+  <circle cx="25" cy="160" r="1" fill="url(#riceGradient)" opacity="0.25"/>
+  
+  <!-- Wasabi dots -->
+  <circle cx="90" cy="25" r="2" fill="#7cb342" opacity="0.2"/>
+  <circle cx="140" cy="160" r="1.5" fill="#7cb342" opacity="0.15"/>
+  
+  <!-- Ginger slices -->
+  <ellipse cx="150" cy="50" rx="8" ry="3" fill="#ffcdd2" opacity="0.2" transform="rotate(30 150 50)"/>
+  <ellipse cx="40" cy="130" rx="6" ry="2.5" fill="#ffcdd2" opacity="0.15" transform="rotate(-20 40 130)"/>
+</svg> 

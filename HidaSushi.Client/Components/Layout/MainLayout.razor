@@ -3,6 +3,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject ICartService CartService
+@inject ILocalizationService LocalizationService
 @implements IDisposable
 
 <div class="min-h-screen bg-gray-50">
@@ -32,7 +33,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                         </svg>
-                        <span>Home</span>
+                        <span>@LocalizationService.GetString("Navigation.Home")</span>
                         </div>
                     </a>
                     <a href="/about" class="@(IsCurrentPage("/about") ? "px-3 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg" : "px-3 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-amber-600 hover:bg-amber-50 transition-all duration-200")">
@@ -48,7 +49,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
-                        <span>Menu</span>
+                        <span>@LocalizationService.GetString("Navigation.Menu")</span>
                         </div>
                     </a>
                     <a href="/build-roll" class="@(IsCurrentPage("/build-roll") ? "px-3 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg" : "px-3 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all duration-200")">
@@ -56,7 +57,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
                         </svg>
-                        <span>Build</span>
+                        <span>@LocalizationService.GetString("Navigation.BuildRoll")</span>
                         </div>
                     </a>
                     <a href="/track-order" class="@(IsCurrentPage("/track-order") ? "px-3 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg" : "px-3 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-orange-600 hover:bg-orange-50 transition-all duration-200")">
@@ -64,7 +65,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
                         </svg>
-                        <span>Track</span>
+                        <span>@LocalizationService.GetString("Navigation.TrackOrder")</span>
                         </div>
                     </a>
                     <a href="/contact" class="@(IsCurrentPage("/contact") ? "px-3 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg" : "px-3 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-pink-600 hover:bg-pink-50 transition-all duration-200")">
@@ -81,43 +82,62 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
                         </svg>
-                            <span>Sign In</span>
+                            <span>@LocalizationService.GetString("Navigation.Login")</span>
                         </div>
                     </a>
                 </div>
 
-                <!-- Cart Button with 3D Effect -->
-                <button @onclick="ToggleCart" class="relative ml-4 p-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                    <div class="flex items-center space-x-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.8 9M7 13l1.8-9M7 13l5 5m0 0l5-5"/>
-                        </svg>
-                        <span class="hidden sm:inline font-medium">Cart</span>
+                <!-- Right side controls: Language, GodCoin, Cart -->
+                <div class="flex items-center space-x-3">
+                    <!-- Language Switcher -->
+                    <div class="block">
+                        <LanguageSwitcher />
                     </div>
-                    @if (GetCartItemCount() > 0)
-                    {
-                        <span class="absolute -top-2 -right-2 bg-purple-600 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200">
-                            @GetCartItemCount()
-                        </span>
-                    }
+
+                    <!-- GodCoin Balance (when user is logged in) -->
+                    @* TODO: Replace with actual user ID when authentication is implemented *@
+                    <div class="hidden lg:block">
+                        <GodCoinBalance UserId="demo-user" />
+                    </div>
+
+                    <!-- Cart Button with 3D Effect -->
+                    <button @onclick="ToggleCart" class="relative p-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.8 9M7 13l1.8-9M7 13l5 5m0 0l5-5"/>
+                            </svg>
+                            <span class="hidden sm:inline font-medium">@LocalizationService.GetString("Navigation.Cart")</span>
+                        </div>
+                        @if (GetCartItemCount() > 0)
+                        {
+                            <span class="absolute -top-2 -right-2 bg-purple-600 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200">
+                                @GetCartItemCount()
+                            </span>
+                        }
+                        </button>
+                        
+                    <!-- Mobile menu button with 3D Effect -->
+                    <button @onclick="ToggleMobileMenu" type="button" class="md:hidden inline-flex items-center justify-center p-2 rounded-xl text-gray-700 hover:text-purple-600 hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 transition-all duration-200 transform hover:scale-105" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <div class="text-2xl transform hover:rotate-12 transition-transform duration-200">☰</div>
                     </button>
-                    
-                <!-- Mobile menu button with 3D Effect -->
-                <button @onclick="ToggleMobileMenu" type="button" class="md:hidden ml-2 inline-flex items-center justify-center p-2 rounded-xl text-gray-700 hover:text-purple-600 hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 transition-all duration-200 transform hover:scale-105" aria-controls="mobile-menu" aria-expanded="false">
-                    <span class="sr-only">Open main menu</span>
-                    <div class="text-2xl transform hover:rotate-12 transition-transform duration-200">☰</div>
-                </button>
+                </div>
             </div>
 
             <!-- Mobile Menu -->
             <div class="@(isMobileMenuOpen ? "block" : "hidden") md:hidden border-t border-gray-200/50 bg-white/95 backdrop-blur-xl">
                 <div class="px-2 pt-2 pb-3 space-y-1">
+                    <!-- Mobile Language Switcher -->
+                    <div class="px-3 py-2">
+                        <LanguageSwitcher />
+                    </div>
+                    
                     <a href="/" class="@(IsCurrentPage("/") ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "text-gray-700 hover:text-purple-600 hover:bg-purple-50") block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200" @onclick="CloseMobileMenu">
                         <div class="flex items-center space-x-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                             </svg>
-                            <span>Home</span>
+                            <span>@LocalizationService.GetString("Navigation.Home")</span>
                         </div>
                     </a>
                     <a href="/about" class="@(IsCurrentPage("/about") ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "text-gray-700 hover:text-amber-600 hover:bg-amber-50") block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200" @onclick="CloseMobileMenu">
@@ -133,7 +153,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                             </svg>
-                            <span>Browse Menu</span>
+                            <span>@LocalizationService.GetString("Navigation.Menu")</span>
                         </div>
                     </a>
                     <a href="/build-roll" class="@(IsCurrentPage("/build-roll") ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "text-gray-700 hover:text-green-600 hover:bg-green-50") block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200" @onclick="CloseMobileMenu">
@@ -141,7 +161,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
                             </svg>
-                            <span>Build Your Roll</span>
+                            <span>@LocalizationService.GetString("Navigation.BuildRoll")</span>
                         </div>
                     </a>
                     <a href="/track-order" class="@(IsCurrentPage("/track-order") ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "text-gray-700 hover:text-orange-600 hover:bg-orange-50") block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200" @onclick="CloseMobileMenu">
@@ -149,7 +169,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
                             </svg>
-                            <span>Track Order</span>
+                            <span>@LocalizationService.GetString("Navigation.TrackOrder")</span>
                         </div>
                     </a>
                     <a href="/contact" class="@(IsCurrentPage("/contact") ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "text-gray-700 hover:text-pink-600 hover:bg-pink-50") block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200" @onclick="CloseMobileMenu">
@@ -166,7 +186,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
                             </svg>
-                            <span>Sign In</span>
+                            <span>@LocalizationService.GetString("Navigation.Login")</span>
                         </div>
                     </a>
 
@@ -176,9 +196,14 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.8 9M7 13l1.8-9M7 13l5 5m0 0l5-5"/>
                         </svg>
-                            <span>Cart (@GetCartItemCount())</span>
+                            <span>@LocalizationService.GetString("Navigation.Cart") (@GetCartItemCount())</span>
                         </div>
                     </a>
+
+                    <!-- Mobile GodCoin Balance -->
+                    <div class="px-3 py-2">
+                        <GodCoinBalance UserId="demo-user" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -244,19 +269,19 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                             </svg>
-                            <span>Menu</span>
+                            <span>@LocalizationService.GetString("Navigation.Menu")</span>
                         </a></li>
                         <li><a href="/build-roll" class="hover:text-white transition-colors flex items-center space-x-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                             </svg>
-                            <span>Build Your Own</span>
+                            <span>@LocalizationService.GetString("Navigation.BuildRoll")</span>
                         </a></li>
                         <li><a href="/track-order" class="hover:text-white transition-colors flex items-center space-x-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                             </svg>
-                            <span>Track Order</span>
+                            <span>@LocalizationService.GetString("Navigation.TrackOrder")</span>
                         </a></li>
                         <li><a href="/contact" class="hover:text-white transition-colors flex items-center space-x-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -326,9 +351,14 @@
     private bool isMobileMenuOpen = false;
     private ErrorBoundary? _errorBoundary;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        // Initialize localization service to load stored language preference
+        await LocalizationService.InitializeAsync();
+        
+        // Subscribe to cart and localization changes
         CartService.OnCartChanged += StateHasChanged;
+        LocalizationService.OnLanguageChanged += StateHasChanged;
     }
 
     protected override void OnParametersSet()
@@ -340,6 +370,7 @@
     public void Dispose()
     {
         CartService.OnCartChanged -= StateHasChanged;
+        LocalizationService.OnLanguageChanged -= StateHasChanged;
     }
 
     private bool IsCurrentPage(string path)

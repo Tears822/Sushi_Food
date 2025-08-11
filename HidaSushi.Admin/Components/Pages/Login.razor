@@ -1,185 +1,183 @@
 @page "/login"
-@using HidaSushi.Shared.Models
+@attribute [AllowAnonymous]
+@using Microsoft.AspNetCore.Authorization
 @using HidaSushi.Admin.Services
 @inject AuthenticationService AuthService
 @inject NavigationManager Navigation
-@inject IJSRuntime JSRuntime
-@rendermode InteractiveServer
 
 <PageTitle>Admin Login - HIDA SUSHI</PageTitle>
 
-<div class="min-h-screen bg-gradient-to-br from-purple-600 to-amber-500 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <!-- Logo -->
-        <div class="text-center mb-8">
-            <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-amber-500 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <span class="text-white font-bold text-2xl">🍣</span>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-900">HIDA SUSHI</h1>
-            <p class="text-gray-600">Admin Dashboard Login</p>
-        </div>
+<div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 relative overflow-hidden">
+    <!-- Animated background shapes -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-40 left-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+    </div>
 
-        <!-- Server Status Indicator -->
-        <div class="mb-6 p-3 rounded-lg @(isServerConnected ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200")">
-            <div class="flex items-center justify-center">
-                <div class="w-3 h-3 rounded-full @(isServerConnected ? "bg-green-500" : "bg-red-500") mr-2"></div>
-                <span class="text-sm @(isServerConnected ? "text-green-700" : "text-red-700")">
-                    @(isServerConnected ? "🟢 Server Connected" : "🔴 Server Disconnected")
-                </span>
-                <button @onclick="CheckServerHealth" class="ml-2 text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 transition-colors">
-                    🔄
-                </button>
+    <div class="relative z-10 max-w-md w-full space-y-8">
+        <!-- Logo and Header -->
+        <div class="text-center">
+            <div class="mb-8">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-royal-purple to-pink-primary rounded-full shadow-professional mb-4 animate-bounce">
+                    <span class="text-3xl font-bold text-white">🍣</span>
+                </div>
             </div>
-            <div class="mt-2 text-center">
-                <button @onclick="TestConnection" class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">
-                    🧪 Test Connection
-                </button>
-            </div>
+            <h2 class="text-4xl font-extrabold text-white mb-2 tracking-tight font-poppins">
+                HIDA SUSHI
+            </h2>
+            <p class="text-lg text-gray-300 font-medium font-inter">
+                Admin Panel
+            </p>
+            <div class="mt-4 w-24 h-1 bg-gradient-to-r from-royal-purple to-pink-primary mx-auto rounded-full"></div>
         </div>
-
+        
         <!-- Login Form -->
-        <EditForm Model="loginRequest" OnValidSubmit="HandleLogin">
-            <DataAnnotationsValidator />
-
-            @if (!string.IsNullOrEmpty(errorMessage))
-            {
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                    <div class="flex items-center">
-                        <span class="text-red-600 text-lg mr-2">❌</span>
-                        <p class="text-red-800">@errorMessage</p>
+        <div class="glass-effect rounded-2xl shadow-professional p-8 transform transition-all duration-300 hover:scale-105 hover-glow">
+            <EditForm Model="loginRequest" OnValidSubmit="HandleLogin" FormName="login-form" class="space-y-6">
+                <DataAnnotationsValidator />
+                
+                <div class="space-y-6">
+                    <!-- Username Input -->
+                    <div class="group">
+                        <label for="username" class="block text-sm font-semibold text-gray-200 mb-3 group-focus-within:text-light-purple transition-colors font-inter">
+                            <span class="flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                                </svg>
+                                Username
+                            </span>
+                        </label>
+                        <div class="relative">
+                            <InputText
+                                Value="@loginRequest.Username"
+                                ValueChanged="@((string v) => loginRequest.Username = v)"
+                                ValueExpression="@(() => loginRequest.Username)"
+                                @oninput="@(e => loginRequest.Username = e?.Value?.ToString() ?? string.Empty)"
+                                class="w-full px-4 py-4 dark-input border-2 border-white/20 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-purple focus:border-royal-purple transition-all duration-300 text-lg font-inter"
+                                placeholder="admin" />
+                            <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-royal-purple/20 to-pink-primary/20 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                        </div>
+                        <ValidationMessage For="() => loginRequest.Username" class="text-red-300 text-sm mt-2 flex items-center font-inter">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </ValidationMessage>
+                    </div>
+                    
+                    <!-- Password Input -->
+                    <div class="group">
+                        <label for="password" class="block text-sm font-semibold text-gray-200 mb-3 group-focus-within:text-light-purple transition-colors font-inter">
+                            <span class="flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                            </span>
+                        </label>
+                        <div class="relative">
+                            <InputText type="password"
+                                Value="@loginRequest.Password"
+                                ValueChanged="@((string v) => loginRequest.Password = v)"
+                                ValueExpression="@(() => loginRequest.Password)"
+                                @oninput="@(e => loginRequest.Password = e?.Value?.ToString() ?? string.Empty)"
+                                class="w-full px-4 py-4 dark-input border-2 border-white/20 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-purple focus:border-royal-purple transition-all duration-300 text-lg font-inter"
+                                placeholder="••••••••" />
+                            <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-royal-purple/20 to-pink-primary/20 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                        </div>
+                        <ValidationMessage For="() => loginRequest.Password" class="text-red-300 text-sm mt-2 flex items-center font-inter">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </ValidationMessage>
+                    </div>
+                    
+                    <!-- Error Message -->
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="bg-red-500/20 border-2 border-red-500/50 text-red-200 px-4 py-4 rounded-xl backdrop-blur-sm animate-pulse">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="font-medium font-inter">@errorMessage</span>
+                            </div>
+                        </div>
+                    }
+                    
+                    <!-- Submit Button -->
+                    <div class="pt-4">
+                        <button type="submit" 
+                                class="group relative w-full bg-gradient-to-r from-royal-purple to-pink-primary hover:from-deep-purple hover:to-pink-primary text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-royal-purple/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-professional hover:shadow-professional-hover font-poppins">
+                            <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-royal-purple to-pink-primary rounded-xl blur opacity-30 group-hover:opacity-50 transition-opacity duration-300"></span>
+                            <span class="relative flex items-center justify-center text-lg">
+                                @if (isLoading)
+                                {
+                                    <svg class="animate-spin -ml-1 mr-3 h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span>Signing In...</span>
+                                }
+                                else
+                                {
+                                    <svg class="w-5 h-5 mr-2 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                    </svg>
+                                    <span>Sign In to Dashboard</span>
+                                }
+                            </span>
+                        </button>
                     </div>
                 </div>
-            }
+            </EditForm>
+        </div>
 
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                    <InputText @bind-Value="loginRequest.Username" 
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                               placeholder="Enter your username" />
-                    <ValidationMessage For="@(() => loginRequest.Username)" class="text-red-500 text-sm mt-1" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                    <InputText @bind-Value="loginRequest.Password" 
-                               type="password"
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                               placeholder="Enter your password" />
-                    <ValidationMessage For="@(() => loginRequest.Password)" class="text-red-500 text-sm mt-1" />
-                </div>
-
-                <button type="submit" 
-                        disabled="@isLoggingIn"
-                        class="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-amber-500 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-amber-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                    @if (isLoggingIn)
-                    {
-                        <span>🔄 Logging in...</span>
-                    }
-                    else
-                    {
-                        <span>🔐 Login</span>
-                    }
-                </button>
-            </div>
-        </EditForm>
-
-        <!-- Test Credentials -->
-        <div class="mt-8 bg-blue-50 rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-blue-800 mb-2">Test Credentials:</h3>
-            <div class="text-xs text-blue-700 space-y-1">
-                <p><strong>Admin:</strong> admin / HidaSushi2024!</p>
-                <p><strong>Chef:</strong> jonathan / ChefJonathan123!</p>
-                <p><strong>Kitchen:</strong> kitchen / Kitchen2024!</p>
-            </div>
+        <!-- Footer -->
+        <div class="text-center">
+            <p class="text-gray-400 text-sm font-inter">
+                © 2024 HIDA SUSHI. All rights reserved.
+            </p>
         </div>
     </div>
 </div>
 
 @code {
-    private LoginRequest loginRequest = new();
+    private HidaSushi.Shared.Models.LoginRequest loginRequest = new();
     private string errorMessage = "";
-    private bool isLoggingIn = false;
-    private bool isServerConnected = true; // Added for server status indicator
-
-    protected override async Task OnInitializedAsync()
-    {
-        // Defer authentication check to avoid prerendering issues
-        await Task.Delay(1);
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // Add a small delay to ensure the app is fully loaded
-            await Task.Delay(2000);
-            // Check server connectivity
-            await CheckServerHealth();
-        }
-    }
-
-    private async Task CheckServerHealth()
-    {
-        try
-        {
-            isServerConnected = await AuthService.CheckServerHealthAsync();
-            StateHasChanged();
-        }
-        catch
-        {
-            isServerConnected = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task TestConnection()
-    {
-        try
-        {
-            var result = await AuthService.CheckServerHealthAsync();
-            await JSRuntime.InvokeVoidAsync("alert", result ? "✅ Server is connected!" : "❌ Server is not connected!");
-            isServerConnected = result;
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", $"❌ Connection test failed: {ex.Message}");
-            isServerConnected = false;
-            StateHasChanged();
-        }
-    }
+    private bool isLoading = false;
 
     private async Task HandleLogin()
     {
-        isLoggingIn = true;
+        if (isLoading) return;
+        isLoading = true;
         errorMessage = "";
+        StateHasChanged();
 
         try
         {
             var loginResponse = await AuthService.LoginAsync(loginRequest);
-
-            if (loginResponse.Success)
+            
+            if (loginResponse.Success && !string.IsNullOrEmpty(loginResponse.Token))
             {
-                // Show success message
-                await JSRuntime.InvokeVoidAsync("alert", $"Welcome, {loginRequest.Username}! Redirecting to admin dashboard...");
-                
-                // Redirect to admin dashboard
-                Navigation.NavigateTo("/admin");
+                // Issue auth cookie with JWT token then redirect to dashboard
+                var url = $"/signin?name={Uri.EscapeDataString(loginRequest.Username)}&token={Uri.EscapeDataString(loginResponse.Token)}&returnUrl=/admin";
+                Console.WriteLine($"Navigating to: {url}");
+                Navigation.NavigateTo(url, forceLoad: true);
             }
             else
             {
-                errorMessage = loginResponse.Message ?? "Login failed. Please try again.";
+                errorMessage = loginResponse.Message ?? "Login failed. Please check your credentials and try again.";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = "Unable to connect to server. Please try again later.";
+            errorMessage = "An error occurred during login. Please try again.";
             Console.WriteLine($"Login error: {ex.Message}");
         }
         finally
         {
-            isLoggingIn = false;
+            isLoading = false;
+            StateHasChanged();
         }
     }
 } 

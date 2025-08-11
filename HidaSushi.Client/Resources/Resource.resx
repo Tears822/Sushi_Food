@@ -1,0 +1,654 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  
+  <!-- Navigation -->
+  <data name="Navigation.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Navigation.Menu" xml:space="preserve">
+    <value>Menu</value>
+  </data>
+  <data name="Navigation.BuildRoll" xml:space="preserve">
+    <value>Build Roll</value>
+  </data>
+  <data name="Navigation.TrackOrder" xml:space="preserve">
+    <value>Track Order</value>
+  </data>
+  <data name="Navigation.Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="Navigation.Cart" xml:space="preserve">
+    <value>Cart</value>
+  </data>
+  
+  <!-- Home Page -->
+  <data name="Home.Title" xml:space="preserve">
+    <value>Premium Sushi Delivered</value>
+  </data>
+  <data name="Home.Subtitle" xml:space="preserve">
+    <value>Fresh &amp; Delicious</value>
+  </data>
+  <data name="Home.Description" xml:space="preserve">
+    <value>Experience the finest sushi crafted by Chef Jonathan. Fresh ingredients, authentic flavors, delivered to your door.</value>
+  </data>
+  <data name="Home.OrderNow" xml:space="preserve">
+    <value>Order Now</value>
+  </data>
+  <data name="Home.ExploreMenu" xml:space="preserve">
+    <value>Explore Menu</value>
+  </data>
+  <data name="Home.PremiumSushi" xml:space="preserve">
+    <value>Premium Sushi</value>
+  </data>
+  <data name="Home.FreshDelicious" xml:space="preserve">
+    <value>Fresh &amp; Delicious</value>
+  </data>
+  <data name="Home.WhyChooseTitle" xml:space="preserve">
+    <value>Why Choose HIDA SUSHI</value>
+  </data>
+  <data name="Home.WhyChooseDescription" xml:space="preserve">
+    <value>Experience the perfect blend of traditional Japanese craftsmanship and modern convenience</value>
+  </data>
+  <data name="Home.FreshIngredientsTitle" xml:space="preserve">
+    <value>Fresh Ingredients</value>
+  </data>
+  <data name="Home.FreshIngredientsDescription" xml:space="preserve">
+    <value>Daily sourced premium fish and organic vegetables for the finest quality.</value>
+  </data>
+  <data name="Home.MasterChefTitle" xml:space="preserve">
+    <value>Master Chef</value>
+  </data>
+  <data name="Home.MasterChefDescription" xml:space="preserve">
+    <value>Crafted by Chef Jonathan with 15+ years of Japanese culinary expertise.</value>
+  </data>
+  <data name="Home.FastDeliveryTitle" xml:space="preserve">
+    <value>Fast Delivery</value>
+  </data>
+  <data name="Home.FastDeliveryDescription" xml:space="preserve">
+    <value>Lightning-fast delivery in 25-35 minutes while maintaining freshness.</value>
+  </data>
+  <data name="Home.CustomRollsTitle" xml:space="preserve">
+    <value>Custom Rolls</value>
+  </data>
+  <data name="Home.CustomRollsDescription" xml:space="preserve">
+    <value>Build your perfect roll with our interactive ingredient selection tool.</value>
+  </data>
+  <data name="Home.SignatureRollsTitle" xml:space="preserve">
+    <value>Signature Rolls</value>
+  </data>
+  <data name="Home.SignatureRollsDescription" xml:space="preserve">
+    <value>Handcrafted creations that tell a story with every bite.</value>
+  </data>
+  <data name="Home.LoadingSignatureRolls" xml:space="preserve">
+    <value>Loading signature rolls...</value>
+  </data>
+  <data name="Home.ComingSoonTitle" xml:space="preserve">
+    <value>Coming Soon</value>
+  </data>
+  <data name="Home.ComingSoonDescription" xml:space="preserve">
+    <value>Our signature rolls are being prepared with love.</value>
+  </data>
+  <data name="Home.ViewFullMenu" xml:space="preserve">
+    <value>View Full Menu</value>
+  </data>
+  <data name="Home.AboutChefTitle" xml:space="preserve">
+    <value>Meet the Master</value>
+  </data>
+  <data name="Home.AboutChefDescription" xml:space="preserve">
+    <value>Every roll at HIDA SUSHI tells a story. From traditional nigiri to innovative fusion creations, Chef Jonathan combines authentic Japanese techniques with contemporary flavors.</value>
+  </data>
+  <data name="Home.SignatureRollsCount" xml:space="preserve">
+    <value>Signature Rolls</value>
+  </data>
+  <data name="Home.FreshIngredientsCount" xml:space="preserve">
+    <value>Fresh Ingredients</value>
+  </data>
+  <data name="Home.HowItWorksTitle" xml:space="preserve">
+    <value>How It Works</value>
+  </data>
+  <data name="Home.HowItWorksDescription" xml:space="preserve">
+    <value>From selection to delivery in just a few simple steps</value>
+  </data>
+  <data name="Home.ChooseRollsTitle" xml:space="preserve">
+    <value>Choose Your Rolls</value>
+  </data>
+  <data name="Home.ChooseRollsDescription" xml:space="preserve">
+    <value>Browse our signature collection or build your own custom roll with fresh ingredients</value>
+  </data>
+  <data name="Home.SecurePaymentTitle" xml:space="preserve">
+    <value>Secure Payment</value>
+  </data>
+  <data name="Home.SecurePaymentDescription" xml:space="preserve">
+    <value>Quick and secure checkout with multiple payment options including card and cash</value>
+  </data>
+  <data name="Home.FastDeliveryTitle2" xml:space="preserve">
+    <value>Fast Delivery</value>
+  </data>
+  <data name="Home.ReadyToOrder" xml:space="preserve">
+    <value>Ready to Order?</value>
+  </data>
+  <data name="Home.OrderQuestion" xml:space="preserve">
+    <value>Ready to Order?</value>
+  </data>
+  <data name="Home.OrderDescription" xml:space="preserve">
+    <value>Start your culinary journey with our premium sushi selection or create your own masterpiece</value>
+  </data>
+  <data name="Home.ViewMenu" xml:space="preserve">
+    <value>View Menu</value>
+  </data>
+  <data name="Home.BuildYourOwn" xml:space="preserve">
+    <value>Build Your Own</value>
+  </data>
+  <data name="Home.TrackOrderDescription" xml:space="preserve">
+    <value>Track your order in real-time and enjoy fresh sushi at your doorstep</value>
+  </data>
+  
+  <!-- Menu Page -->
+  <data name="Menu.Title" xml:space="preserve">
+    <value>Menu - HIDA SUSHI</value>
+  </data>
+  <data name="Menu.HandcraftedByChef" xml:space="preserve">
+    <value>Handcrafted by Chef Jonathan</value>
+  </data>
+  <data name="Menu.OurMenu" xml:space="preserve">
+    <value>Our</value>
+  </data>
+  <data name="Menu.Menu" xml:space="preserve">
+    <value>Menu</value>
+  </data>
+  <data name="Menu.Description" xml:space="preserve">
+    <value>Signature rolls with authentic flavors and fresh ingredients. Create your own or choose from our curated selection.</value>
+  </data>
+  <data name="Menu.AllRolls" xml:space="preserve">
+    <value>All Rolls</value>
+  </data>
+  <data name="Menu.Signature" xml:space="preserve">
+    <value>Signature</value>
+  </data>
+  <data name="Menu.Vegetarian" xml:space="preserve">
+    <value>Vegetarian</value>
+  </data>
+  <data name="Menu.BuildYourOwn" xml:space="preserve">
+    <value>Build Your Own</value>
+  </data>
+  <data name="Menu.LoadingRolls" xml:space="preserve">
+    <value>Loading delicious rolls...</value>
+  </data>
+  <data name="Menu.NoRollsFound" xml:space="preserve">
+    <value>No rolls found</value>
+  </data>
+  <data name="Menu.NoRollsFoundDescription" xml:space="preserve">
+    <value>Try adjusting your filter or check back later for new additions.</value>
+  </data>
+  <data name="Menu.ViewAllRolls" xml:space="preserve">
+    <value>View All Rolls</value>
+  </data>
+  <data name="Menu.CustomRollTitle" xml:space="preserve">
+    <value>Want Something Custom?</value>
+  </data>
+  <data name="Menu.CustomRollDescription" xml:space="preserve">
+    <value>Build your own sushi roll with our premium ingredients. Like building a pizza, but with sushi!</value>
+  </data>
+  <data name="Menu.BuildYourOwnRoll" xml:space="preserve">
+    <value>Build Your Own Roll</value>
+  </data>
+  
+  <!-- Common UI Elements -->
+  <data name="Common.AddToCart" xml:space="preserve">
+    <value>Add to Cart</value>
+  </data>
+  <data name="Common.ViewDetails" xml:space="preserve">
+    <value>View Details</value>
+  </data>
+  <data name="Common.Price" xml:space="preserve">
+    <value>Price</value>
+  </data>
+  <data name="Common.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Common.Loading" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="Common.Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Common.Success" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  
+  <!-- About Page -->
+  <data name="About.Title" xml:space="preserve">
+    <value>About Chef Jonathan - HIDA SUSHI</value>
+  </data>
+  <data name="About.MasterSushiChef" xml:space="preserve">
+    <value>Master Sushi Chef</value>
+  </data>
+  <data name="About.Chef" xml:space="preserve">
+    <value>Chef</value>
+  </data>
+  <data name="About.Jonathan" xml:space="preserve">
+    <value>Jonathan</value>
+  </data>
+  <data name="About.SushiArtistStoryteller" xml:space="preserve">
+    <value>Sushi Artist &amp; Storyteller</value>
+  </data>
+  <data name="About.HeroDescription" xml:space="preserve">
+    <value>Every roll tells a story. Every ingredient has a purpose. Welcome to the world of HIDA SUSHI, where tradition meets innovation.</value>
+  </data>
+  <data name="About.ViewOurMenu" xml:space="preserve">
+    <value>View Our Menu</value>
+  </data>
+  <data name="About.GetInTouch" xml:space="preserve">
+    <value>Get in Touch</value>
+  </data>
+  <data name="About.ChefJonathan" xml:space="preserve">
+    <value>Chef Jonathan</value>
+  </data>
+  <data name="About.MasterOfSushi" xml:space="preserve">
+    <value>Master of Sushi</value>
+  </data>
+  <data name="About.TheHidaSushiStory" xml:space="preserve">
+    <value>The</value>
+  </data>
+  <data name="About.Story" xml:space="preserve">
+    <value>Story</value>
+  </data>
+  <data name="About.StoryDescription" xml:space="preserve">
+    <value>Born from passion, driven by purpose, and crafted with artistry.</value>
+  </data>
+  <data name="About.WhereArtMeetsTaste" xml:space="preserve">
+    <value>Where Art Meets Taste</value>
+  </data>
+  
+  <!-- ProductCard Component -->
+  <data name="ProductCard.PremiumSushi" xml:space="preserve">
+    <value>Premium Sushi</value>
+  </data>
+  <data name="ProductCard.Signature" xml:space="preserve">
+    <value>SIGNATURE</value>
+  </data>
+  <data name="ProductCard.Veggie" xml:space="preserve">
+    <value>VEGGIE</value>
+  </data>
+  <data name="ProductCard.MoreIngredients" xml:space="preserve">
+    <value>+{0} more</value>
+  </data>
+  
+  <!-- Cart and Checkout -->
+  <data name="Cart.Title" xml:space="preserve">
+    <value>Shopping Cart</value>
+  </data>
+  <data name="Cart.Empty" xml:space="preserve">
+    <value>Your cart is empty</value>
+  </data>
+  <data name="Cart.EmptyDescription" xml:space="preserve">
+    <value>Add some delicious sushi to get started!</value>
+  </data>
+  <data name="Cart.ViewMenu" xml:space="preserve">
+    <value>View Menu</value>
+  </data>
+  <data name="Cart.Subtotal" xml:space="preserve">
+    <value>Subtotal</value>
+  </data>
+  <data name="Cart.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Cart.Checkout" xml:space="preserve">
+    <value>Checkout</value>
+  </data>
+  
+  <!-- About Page Additional Content -->
+  <data name="About.CulinaryPhilosophy" xml:space="preserve">
+    <value>Culinary Philosophy</value>
+  </data>
+  <data name="About.CulinaryPhilosophyQuote" xml:space="preserve">
+    <value>Sushi is not just food—it's a canvas for storytelling. Every ingredient is chosen with purpose, every roll crafted with intention.</value>
+  </data>
+  <data name="About.SignatureRollsCount" xml:space="preserve">
+    <value>Signature Rolls</value>
+  </data>
+  <data name="About.YearsExperience" xml:space="preserve">
+    <value>Years Experience</value>
+  </data>
+  <data name="About.TheJourney" xml:space="preserve">
+    <value>The Journey</value>
+  </data>
+  <data name="About.JourneyDescription" xml:space="preserve">
+    <value>From traditional training in Japan to innovative fusion in Brussels.</value>
+  </data>
+  <data name="About.TokyoTraining" xml:space="preserve">
+    <value>Tokyo Training</value>
+  </data>
+  <data name="About.TokyoTrainingDescription" xml:space="preserve">
+    <value>Three years of intensive training under master sushi chefs in Tokyo, learning the ancient art of sushi preparation and presentation.</value>
+  </data>
+  <data name="About.GlobalInspiration" xml:space="preserve">
+    <value>Global Inspiration</value>
+  </data>
+  <data name="About.GlobalInspirationDescription" xml:space="preserve">
+    <value>Traveled across Europe and Asia, gathering inspiration from diverse culinary traditions and learning to blend flavors from different cultures.</value>
+  </data>
+  <data name="About.HidaSushiBorn" xml:space="preserve">
+    <value>HIDA SUSHI Born</value>
+  </data>
+  <data name="About.HidaSushiBornDescription" xml:space="preserve">
+    <value>Established HIDA SUSHI in Brussels, creating a unique fusion of traditional Japanese techniques with European influences and storytelling elements.</value>
+  </data>
+  <data name="About.OurValues" xml:space="preserve">
+    <value>Our Values</value>
+  </data>
+  <data name="About.OurValuesDescription" xml:space="preserve">
+    <value>The principles that guide every roll we create and every customer we serve.</value>
+  </data>
+  <data name="About.FreshIngredients" xml:space="preserve">
+    <value>Fresh Ingredients</value>
+  </data>
+  <data name="About.FreshIngredientsDescription" xml:space="preserve">
+    <value>We source only the finest, freshest ingredients, ensuring every bite delivers exceptional quality and authentic flavors.</value>
+  </data>
+  <data name="About.ArtisanCraftsmanship" xml:space="preserve">
+    <value>Artisan Craftsmanship</value>
+  </data>
+  <data name="About.ArtisanCraftsmanshipDescription" xml:space="preserve">
+    <value>Each roll is handcrafted with precision and care, combining traditional techniques with innovative presentation and flavor combinations.</value>
+  </data>
+  <data name="About.CustomerExperience" xml:space="preserve">
+    <value>Customer Experience</value>
+  </data>
+  <data name="About.CustomerExperienceDescription" xml:space="preserve">
+    <value>From order to delivery, we focus on creating memorable experiences that bring joy and satisfaction to every customer interaction.</value>
+  </data>
+  
+  <!-- Contact Page -->
+  <data name="Contact.Title" xml:space="preserve">
+    <value>Contact &amp; Hours - HIDA SUSHI</value>
+  </data>
+  <data name="Contact.ContactUs" xml:space="preserve">
+    <value>📞 Contact Us</value>
+  </data>
+  <data name="Contact.ContactDescription" xml:space="preserve">
+    <value>Get in touch • Order info • Location &amp; Hours</value>
+  </data>
+  <data name="Contact.GetInTouch" xml:space="preserve">
+    <value>Get in Touch</value>
+  </data>
+  <data name="Contact.Phone" xml:space="preserve">
+    <value>Phone</value>
+  </data>
+  <data name="Contact.PhoneAvailable" xml:space="preserve">
+    <value>Available during business hours</value>
+  </data>
+  <data name="Contact.Email" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="Contact.EmailResponse" xml:space="preserve">
+    <value>We'll respond within 24 hours</value>
+  </data>
+  <data name="Contact.Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="Contact.LocationDescription" xml:space="preserve">
+    <value>Delivery throughout Brussels metropolitan area</value>
+  </data>
+  <data name="Contact.FollowUs" xml:space="preserve">
+    <value>Follow Us</value>
+  </data>
+  <data name="Contact.FollowUsDescription" xml:space="preserve">
+    <value>See our latest creations</value>
+  </data>
+  <data name="Contact.BusinessHours" xml:space="preserve">
+    <value>Business Hours</value>
+  </data>
+  <data name="Contact.MondayThursday" xml:space="preserve">
+    <value>Monday - Thursday</value>
+  </data>
+  <data name="Contact.FridaySaturday" xml:space="preserve">
+    <value>Friday - Saturday</value>
+  </data>
+  <data name="Contact.Sunday" xml:space="preserve">
+    <value>Sunday</value>
+  </data>
+  <data name="Contact.CurrentlyOpen" xml:space="preserve">
+    <value>Currently Open - Orders accepted!</value>
+  </data>
+  <data name="Contact.ReadyToOrder" xml:space="preserve">
+    <value>Ready to Order?</value>
+  </data>
+  <data name="Contact.BrowseMenu" xml:space="preserve">
+    <value>Browse Menu</value>
+  </data>
+  <data name="Contact.BuildCustomRoll" xml:space="preserve">
+    <value>🎨 Build Custom Roll</value>
+  </data>
+  <data name="Contact.TrackExistingOrder" xml:space="preserve">
+    <value>📦 Track Existing Order</value>
+  </data>
+  <data name="Contact.DeliveryInformation" xml:space="preserve">
+    <value>Delivery Information</value>
+  </data>
+  <data name="Contact.DeliveryFee" xml:space="preserve">
+    <value>Delivery Fee:</value>
+  </data>
+  <data name="Contact.DeliveryTime" xml:space="preserve">
+    <value>Delivery Time:</value>
+  </data>
+  <data name="Contact.FreeDelivery" xml:space="preserve">
+    <value>Free Delivery:</value>
+  </data>
+  <data name="Contact.PickupAvailable" xml:space="preserve">
+    <value>Pickup Available:</value>
+  </data>
+  <data name="Contact.FrequentlyAskedQuestions" xml:space="preserve">
+    <value>Frequently Asked Questions</value>
+  </data>
+  <data name="Contact.FAQFreshIngredients" xml:space="preserve">
+    <value>How fresh are your ingredients?</value>
+  </data>
+  <data name="Contact.FAQFreshIngredientsAnswer" xml:space="preserve">
+    <value>We source premium ingredients daily and prepare everything fresh to order. Our fish is sushi-grade and delivered daily from trusted suppliers.</value>
+  </data>
+  <data name="Contact.FAQDietaryRestrictions" xml:space="preserve">
+    <value>Do you accommodate dietary restrictions?</value>
+  </data>
+  <data name="Contact.FAQDietaryRestrictionsAnswer" xml:space="preserve">
+    <value>Absolutely! We offer vegetarian options and can accommodate most dietary needs. Please mention any allergies or preferences when ordering.</value>
+  </data>
+  <data name="Contact.FAQPaymentMethods" xml:space="preserve">
+    <value>What payment methods do you accept?</value>
+  </data>
+  <data name="Contact.FAQPaymentMethodsAnswer" xml:space="preserve">
+    <value>We accept all major credit cards through Stripe, cash on delivery, and GodPay. Payment is secure and processed safely.</value>
+  </data>
+  <data name="Contact.FAQOrderTracking" xml:space="preserve">
+    <value>Can I track my order in real-time?</value>
+  </data>
+  <data name="Contact.FAQOrderTrackingAnswer" xml:space="preserve">
+    <value>Yes! Every order gets a unique tracking number. You can follow your sushi's journey from preparation to delivery on our tracking page.</value>
+  </data>
+  
+  <!-- Login/Register Page -->
+  <data name="Auth.Register" xml:space="preserve">
+    <value>Register</value>
+  </data>
+  <data name="Auth.Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="Auth.JoinHidaSushi" xml:space="preserve">
+    <value>Join HIDA SUSHI!</value>
+  </data>
+  <data name="Auth.CreateAccount" xml:space="preserve">
+    <value>Create your account to start ordering</value>
+  </data>
+  <data name="Auth.WelcomeBack" xml:space="preserve">
+    <value>Welcome Back!</value>
+  </data>
+  <data name="Auth.SignInAccount" xml:space="preserve">
+    <value>Sign in to your HIDA SUSHI account</value>
+  </data>
+  <data name="Auth.SignIn" xml:space="preserve">
+    <value>Sign In</value>
+  </data>
+  <data name="Auth.RegisterButton" xml:space="preserve">
+    <value>Register</value>
+  </data>
+  <data name="Auth.FullName" xml:space="preserve">
+    <value>Full Name</value>
+  </data>
+  <data name="Auth.EnterFullName" xml:space="preserve">
+    <value>Enter your full name</value>
+  </data>
+  <data name="Auth.EmailAddress" xml:space="preserve">
+    <value>Email Address</value>
+  </data>
+  <data name="Auth.EnterEmail" xml:space="preserve">
+    <value>Enter your email</value>
+  </data>
+  <data name="Auth.Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Auth.CreatePassword" xml:space="preserve">
+    <value>Create a password</value>
+  </data>
+  <data name="Auth.EnterPassword" xml:space="preserve">
+    <value>Enter your password</value>
+  </data>
+  <data name="Auth.ConfirmPassword" xml:space="preserve">
+    <value>Confirm Password</value>
+  </data>
+  <data name="Auth.ConfirmYourPassword" xml:space="preserve">
+    <value>Confirm your password</value>
+  </data>
+  <data name="Auth.AcceptTerms" xml:space="preserve">
+    <value>I agree to the Terms and Privacy Policy</value>
+  </data>
+  <data name="Auth.Terms" xml:space="preserve">
+    <value>Terms</value>
+  </data>
+  <data name="Auth.PrivacyPolicy" xml:space="preserve">
+    <value>Privacy Policy</value>
+  </data>
+  <data name="Auth.RememberMe" xml:space="preserve">
+    <value>Remember me</value>
+  </data>
+  <data name="Auth.ForgotPassword" xml:space="preserve">
+    <value>Forgot password?</value>
+  </data>
+  <data name="Auth.CreatingAccount" xml:space="preserve">
+    <value>Creating Account...</value>
+  </data>
+  <data name="Auth.SigningIn" xml:space="preserve">
+    <value>Signing In...</value>
+  </data>
+  <data name="Auth.CreateAccountButton" xml:space="preserve">
+    <value>Create Account</value>
+  </data>
+  <data name="Auth.SignInButton" xml:space="preserve">
+    <value>Sign In</value>
+  </data>
+  <data name="Auth.DemoCredentials" xml:space="preserve">
+    <value>Demo Credentials:</value>
+  </data>
+  <data name="Auth.ClickToAutoFill" xml:space="preserve">
+    <value>Click to auto-fill</value>
+  </data>
+  <data name="Auth.ContinueAsGuest" xml:space="preserve">
+    <value>Continue as Guest →</value>
+  </data>
+  <data name="Auth.PleaseEnterBoth" xml:space="preserve">
+    <value>Please enter both email and password.</value>
+  </data>
+  <data name="Auth.InvalidCredentials" xml:space="preserve">
+    <value>Invalid email or password.</value>
+  </data>
+  <data name="Auth.LoginSuccessful" xml:space="preserve">
+    <value>Login Successful! 🍣</value>
+  </data>
+  <data name="Auth.WelcomeBackMessage" xml:space="preserve">
+    <value>Welcome back to HIDA SUSHI!</value>
+  </data>
+  <data name="Auth.PleaseFillAllFields" xml:space="preserve">
+    <value>Please fill in all required fields.</value>
+  </data>
+  <data name="Auth.PasswordsDoNotMatch" xml:space="preserve">
+    <value>Passwords do not match.</value>
+  </data>
+  <data name="Auth.PasswordTooShort" xml:space="preserve">
+    <value>Password must be at least 6 characters long.</value>
+  </data>
+  <data name="Auth.PleaseAcceptTerms" xml:space="preserve">
+    <value>Please accept the Terms of Service and Privacy Policy.</value>
+  </data>
+  <data name="Auth.PleaseEnterValidEmail" xml:space="preserve">
+    <value>Please enter a valid email address.</value>
+  </data>
+  <data name="Auth.RegistrationSuccessful" xml:space="preserve">
+    <value>Registration Successful! 🎉</value>
+  </data>
+  <data name="Auth.CanNowSignIn" xml:space="preserve">
+    <value>You can now sign in with your credentials.</value>
+  </data>
+  <data name="Auth.RegistrationFailed" xml:space="preserve">
+    <value>Registration failed. Please try again.</value>
+  </data>
+  <data name="Auth.ErrorOccurred" xml:space="preserve">
+    <value>An error occurred. Please try again.</value>
+  </data>
+</root> 

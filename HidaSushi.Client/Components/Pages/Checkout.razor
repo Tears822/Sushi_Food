@@ -2,50 +2,84 @@
 @using HidaSushi.Shared.Models
 @using HidaSushi.Client.Services
 @inject ICartService CartService
+@inject IApiService ApiService
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject IToastService ToastService
+@inject ILogger<Checkout> Logger
 @inherits FlowbitePage
 
 <PageTitle>Checkout - HIDA SUSHI</PageTitle>
 
-<!-- Hero Section -->
-<section class="relative bg-gradient-to-br from-green-600 via-blue-600 to-purple-600 text-white py-16 lg:py-20 overflow-hidden">
-    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 font-poppins">
-            🛍️ Checkout
+<!-- Modern Hero Section -->
+<section class="bg-gradient-to-br from-slate-50 to-green-50 py-16 lg:py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <div class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-100 to-blue-100 text-green-800 text-sm font-medium rounded-full border border-green-200 shadow-sm mb-6">
+                <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                Secure Checkout
+            </div>
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+                Complete Your <span class="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Order</span>
             </h1>
-        <p class="text-xl md:text-2xl text-green-100 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Almost there! Complete your order for fresh sushi delivery
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                Almost there! Your fresh sushi will be prepared and delivered in 25-35 minutes
             </p>
+        </div>
     </div>
-    
-    <!-- Floating Elements -->
-    <div class="absolute top-20 left-10 text-5xl opacity-20 animate-bounce">📦</div>
-    <div class="absolute bottom-20 right-10 text-4xl opacity-20 animate-pulse">🚚</div>
 </section>
 
 <!-- Checkout Content -->
-<section class="py-16 bg-gray-50">
+<section class="py-16 bg-white min-h-screen">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         @if (cartItems.Any())
         {
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
                 <!-- Checkout Form -->
-                <div class="lg:col-span-2">
-                    <div class="bg-white rounded-2xl shadow-xl p-6 lg:p-8 border border-gray-100">
+                <div class="lg:col-span-2 space-y-8">
+                    
+                    <!-- Progress Steps -->
+                    <div class="bg-white rounded-3xl shadow-card border border-gray-100 p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center space-x-4">
+                                <div class="@(currentStep >= 1 ? "bg-green-500" : "bg-gray-300") w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm transition-colors">
+                                    @(currentStep > 1 ? "✓" : "1")
+                                </div>
+                                <span class="@(currentStep >= 1 ? "text-green-600" : "text-gray-500") font-medium">Order Type</span>
+                            </div>
+                            <div class="flex-1 h-0.5 @(currentStep >= 2 ? "bg-green-500" : "bg-gray-300") mx-4 transition-colors"></div>
+                            <div class="flex items-center space-x-4">
+                                <div class="@(currentStep >= 2 ? "bg-green-500" : "bg-gray-300") w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm transition-colors">
+                                    @(currentStep > 2 ? "✓" : "2")
+                                </div>
+                                <span class="@(currentStep >= 2 ? "text-green-600" : "text-gray-500") font-medium">Details</span>
+                            </div>
+                            <div class="flex-1 h-0.5 @(currentStep >= 3 ? "bg-green-500" : "bg-gray-300") mx-4 transition-colors"></div>
+                            <div class="flex items-center space-x-4">
+                                <div class="@(currentStep >= 3 ? "bg-green-500" : "bg-gray-300") w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm transition-colors">
+                                    @(currentStep > 3 ? "✓" : "3")
+                                </div>
+                                <span class="@(currentStep >= 3 ? "text-green-600" : "text-gray-500") font-medium">Payment</span>
+                            </div>
+                        </div>
+                    </div>
                         
                         <!-- Step 1: Order Type -->
-                        <div class="mb-8">
-                            <h2 class="text-2xl lg:text-3xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent flex items-center">
-                                <span class="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">1</span>
-                                Order Type
+                    @if (currentStep == 1)
+                    {
+                        <div class="bg-white rounded-3xl shadow-card border border-gray-100 p-8 animate-fade-in-up">
+                            <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                                <span class="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-4">1</span>
+                                How would you like to receive your order?
                             </h2>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div @onclick="() => SelectOrderType(OrderType.Delivery)" 
-                                     class="relative group border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 transform hover:scale-105 @(orderType == OrderType.Delivery ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50 shadow-lg" : "border-gray-200 hover:border-green-300 hover:shadow-md")">
+                                     class="group relative border-2 rounded-2xl p-8 cursor-pointer transition-all duration-300 transform hover:scale-105 @(orderType == OrderType.Delivery ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50 shadow-lg" : "border-gray-200 hover:border-green-300 hover:shadow-md bg-white")">
                                     
                                     @if (orderType == OrderType.Delivery)
                                     {
-                                        <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg animate-pulse">
+                                        <div class="absolute -top-3 -right-3 bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg animate-scale-in">
                                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                             </svg>
@@ -53,19 +87,21 @@
                     }
                     
                                     <div class="text-center">
-                                        <div class="text-4xl mb-3">🚚</div>
-                                        <h3 class="font-bold text-lg mb-2 text-gray-900">Delivery</h3>
-                                        <p class="text-sm text-gray-600">Get it delivered to your door</p>
-                                        <p class="text-sm text-green-600 font-medium mt-2">+€3.50 delivery fee</p>
+                                        <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-green-500 to-blue-500 rounded-2xl flex items-center justify-center text-white text-2xl group-hover:scale-110 transition-transform">
+                                            🚚
+                                        </div>
+                                        <h3 class="text-xl font-bold text-gray-900 mb-2">Delivery</h3>
+                                        <p class="text-gray-600 text-sm mb-4">Delivered to your door in 25-35 minutes</p>
+                                        <div class="text-lg font-bold text-gray-900">€3.50 delivery fee</div>
                     </div>
                 </div>
                                 
                                 <div @onclick="() => SelectOrderType(OrderType.Pickup)" 
-                                     class="relative group border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 transform hover:scale-105 @(orderType == OrderType.Pickup ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50 shadow-lg" : "border-gray-200 hover:border-green-300 hover:shadow-md")">
+                                     class="group relative border-2 rounded-2xl p-8 cursor-pointer transition-all duration-300 transform hover:scale-105 @(orderType == OrderType.Pickup ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50 shadow-lg" : "border-gray-200 hover:border-green-300 hover:shadow-md bg-white")">
                                     
                                     @if (orderType == OrderType.Pickup)
                                     {
-                                        <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg animate-pulse">
+                                        <div class="absolute -top-3 -right-3 bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg animate-scale-in">
                                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                             </svg>
@@ -73,209 +109,323 @@
                                     }
                                     
                                                 <div class="text-center">
-                                        <div class="text-4xl mb-3">🏪</div>
-                                        <h3 class="font-bold text-lg mb-2 text-gray-900">Pickup</h3>
-                                        <p class="text-sm text-gray-600">Collect from our kitchen</p>
-                                        <p class="text-sm text-blue-600 font-medium mt-2">Ready in 15-20 mins</p>
+                                        <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-white text-2xl group-hover:scale-110 transition-transform">
+                                            🏪
+                                        </div>
+                                        <h3 class="text-xl font-bold text-gray-900 mb-2">Pickup</h3>
+                                        <p class="text-gray-600 text-sm mb-4">Ready for pickup in 15-20 minutes</p>
+                                        <div class="text-lg font-bold text-green-600">Free</div>
                                     </div>
                                 </div>
                                     </div>
-                                </div>
-
-                        <!-- Step 2: Customer Information -->
-                        <div class="mb-8">
-                            <h2 class="text-2xl lg:text-3xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent flex items-center">
-                                <span class="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">2</span>
-                                Contact Information
-                            </h2>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
-                                    <input @bind="customerName" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" placeholder="Your full name" />
-                                    </div>
-                                    <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Phone Number *</label>
-                                    <input @bind="customerPhone" type="tel" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" placeholder="+32 470 12 34 56" />
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address *</label>
-                                    <input @bind="customerEmail" type="email" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" placeholder="your@email.com" />
-                                </div>
+                            
+                            <div class="mt-8 flex justify-end">
+                                <button @onclick="NextStep" disabled="@(orderType == null)" 
+                                        class="@(orderType != null ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed") px-8 py-4 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg">
+                                    Continue to Details
+                                    <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                    </svg>
+                                </button>
                             </div>
                                 </div>
+                    }
 
-                        <!-- Step 3: Delivery Address (if delivery) -->
-                        @if (orderType == OrderType.Delivery)
-                        {
-                            <div class="mb-8">
-                                <h2 class="text-2xl lg:text-3xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent flex items-center">
-                                    <span class="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">3</span>
-                                    Delivery Address
-                                </h2>
-                                <div class="space-y-4">
+                    <!-- Step 2: Customer Details -->
+                    @if (currentStep == 2)
+                    {
+                        <div class="bg-white rounded-3xl shadow-card border border-gray-100 p-8 animate-fade-in-up">
+                            <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                                <span class="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-4">2</span>
+                                Your Information
+                            </h2>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                     <div>
-                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Street Address *</label>
-                                        <input @bind="deliveryAddress" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" placeholder="123 Main Street" />
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
+                                    <input @bind="customerName" @oninput="ValidateForm" 
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                                           placeholder="Enter your full name" />
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address *</label>
+                                    <input type="email" @bind="customerEmail" @oninput="ValidateForm" 
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                                           placeholder="your@email.com" />
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Phone Number *</label>
+                                    <input type="tel" @bind="customerPhone" @oninput="ValidateForm" 
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                                           placeholder="+32 123 456 789" />
+                                </div>
+                                
+                                @if (orderType == OrderType.Delivery)
+                                {
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Postal Code *</label>
+                                        <input @bind="postalCode" @oninput="ValidateForm" 
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                                               placeholder="1000" />
                                     </div>
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                }
+                            </div>
+                            
+                            @if (orderType == OrderType.Delivery)
+                            {
+                                <div class="mb-6">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Delivery Address *</label>
+                                    <input @bind="deliveryAddress" @oninput="ValidateForm" 
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                                           placeholder="123 Main Street, Brussels" />
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">City</label>
+                                        <input @bind="city" 
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                                               placeholder="Brussels" />
+                                    </div>
+                                    
                                                     <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">City *</label>
-                                            <input @bind="city" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" placeholder="Brussels" />
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Country</label>
+                                        <select @bind="country" 
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors">
+                                            <option value="Belgium">Belgium</option>
+                                            <option value="Netherlands">Netherlands</option>
+                                            <option value="France">France</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-6">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Delivery Instructions (Optional)</label>
+                                    <textarea @bind="orderNotes" rows="3" 
+                                              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                                              placeholder="Building number, floor, buzzer code, etc."></textarea>
                                                     </div>
-                                        <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Postal Code *</label>
-                                            <input @bind="postalCode" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" placeholder="1000" />
+                            }
+                            else
+                            {
+                                <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+                                    <div class="flex items-start space-x-3">
+                                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <span class="text-white text-sm">📍</span>
                                         </div>
                                                     <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Country *</label>
-                                            <input @bind="country" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" placeholder="Belgium" />
+                                            <h4 class="font-semibold text-blue-900 mb-2">Pickup Location</h4>
+                                            <p class="text-blue-800 text-sm leading-relaxed">
+                                                HIDA SUSHI Kitchen<br />
+                                                123 Sushi Street, 1000 Brussels<br />
+                                                Open: 11:00 AM - 10:00 PM daily
+                                            </p>
                                         </div>
                                     </div>
+                                </div>
+                            }
+                            
+                            <div class="flex justify-between">
+                                <button @onclick="PreviousStep" 
+                                        class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
+                                    ← Back
+                                </button>
+                                <button @onclick="NextStep" disabled="@(!IsStep2Valid())" 
+                                        class="@(IsStep2Valid() ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed") px-8 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg">
+                                    Continue to Payment →
+                                </button>
                                 </div>
                             </div>
                         }
 
-                        <!-- Step 4: Payment Method -->
-                        <div class="mb-8">
-                            <h2 class="text-2xl lg:text-3xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent flex items-center">
-                                <span class="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">@(orderType == OrderType.Delivery ? "4" : "3")</span>
+                    <!-- Step 3: Payment -->
+                    @if (currentStep == 3)
+                    {
+                        <div class="bg-white rounded-3xl shadow-card border border-gray-100 p-8 animate-fade-in-up">
+                            <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-6 flex items-center">
+                                <span class="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-4">3</span>
                                 Payment Method
                             </h2>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            
+                            <!-- Payment Method Selection -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                 <div @onclick="() => SelectPaymentMethod(PaymentMethod.Stripe)" 
-                                     class="relative group border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 @(paymentMethod == PaymentMethod.Stripe ? "border-blue-500 bg-gradient-to-br from-blue-50 to-purple-50 shadow-lg" : "border-gray-200 hover:border-blue-300 hover:shadow-md")">
+                                     class="group relative border-2 rounded-2xl p-6 cursor-pointer transition-all duration-300 @(paymentMethod == PaymentMethod.Stripe ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50" : "border-gray-200 hover:border-green-300 bg-white")">
                                     
                                     @if (paymentMethod == PaymentMethod.Stripe)
                                     {
-                                        <div class="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg animate-pulse">
-                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                            </svg>
+                                        <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                                            ✓
                                         </div>
                                     }
                                     
-                                    <div class="text-center">
-                                        <div class="text-3xl mb-3">💳</div>
-                                        <h3 class="font-bold text-sm text-gray-900">Card Payment</h3>
-                                        <p class="text-xs text-gray-600 mt-1">Secure Stripe payment</p>
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white">
+                                            💳
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-gray-900">Credit/Debit Card</h3>
+                                            <p class="text-sm text-gray-600">Secure payment with Stripe</p>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div @onclick="() => SelectPaymentMethod(PaymentMethod.CashOnDelivery)" 
-                                     class="relative group border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 @(paymentMethod == PaymentMethod.CashOnDelivery ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50 shadow-lg" : "border-gray-200 hover:border-green-300 hover:shadow-md")">
+                                     class="group relative border-2 rounded-2xl p-6 cursor-pointer transition-all duration-300 @(paymentMethod == PaymentMethod.CashOnDelivery ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50" : "border-gray-200 hover:border-green-300 bg-white")">
                                     
                                     @if (paymentMethod == PaymentMethod.CashOnDelivery)
                                     {
-                                        <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg animate-pulse">
-                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                            </svg>
+                                        <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                                            ✓
                                         </div>
                                     }
                                     
-                                    <div class="text-center">
-                                        <div class="text-3xl mb-3">💵</div>
-                                        <h3 class="font-bold text-sm text-gray-900">Cash @(orderType == OrderType.Delivery ? "on Delivery" : "on Pickup")</h3>
-                                        <p class="text-xs text-gray-600 mt-1">Pay when you receive</p>
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl flex items-center justify-center text-white">
+                                            💰
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-gray-900">Cash @(orderType == OrderType.Delivery ? "on Delivery" : "on Pickup")</h3>
+                                            <p class="text-sm text-gray-600">Pay when you receive your order</p>
+                                        </div>
+                                    </div>
                                     </div>
                                 </div>
                                 
-                                <div @onclick="() => SelectPaymentMethod(PaymentMethod.GodPay)" 
-                                     class="relative group border-2 rounded-xl p-6 cursor-pointer transition-all duration-300 @(paymentMethod == PaymentMethod.GodPay ? "border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg" : "border-gray-200 hover:border-purple-300 hover:shadow-md")">
+                            <!-- Stripe Payment Form -->
+                            @if (paymentMethod == PaymentMethod.Stripe)
+                            {
+                                <div class="bg-gray-50 rounded-2xl p-6 mb-6">
+                                    <h4 class="font-semibold text-gray-900 mb-4">Card Information</h4>
                                     
-                                    @if (paymentMethod == PaymentMethod.GodPay)
-                                    {
-                                        <div class="absolute -top-2 -right-2 bg-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg animate-pulse">
-                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                            </svg>
+                                    <div class="grid grid-cols-1 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Card Number *</label>
+                                            <input @bind="cardNumber" @oninput="FormatCardNumber" maxlength="19"
+                                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                                                   placeholder="1234 5678 9012 3456" />
                                         </div>
-                                    }
+                                        
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Expiry Date *</label>
+                                                <input @bind="expiryDate" @oninput="FormatExpiryDate" maxlength="5"
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                                                       placeholder="MM/YY" />
+                                            </div>
+                                            
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">CVV *</label>
+                                                <input @bind="cvv" @oninput="FormatCVV" maxlength="4" type="password"
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                                                       placeholder="123" />
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Cardholder Name *</label>
+                                            <input @bind="cardholderName" 
+                                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                                                   placeholder="John Doe" />
+                                        </div>
+                                    </div>
                                     
-                                    <div class="text-center">
-                                        <div class="text-3xl mb-3">🔮</div>
-                                        <h3 class="font-bold text-sm text-gray-900">GodPay</h3>
-                                        <p class="text-xs text-gray-600 mt-1">Alternative payment</p>
+                                    <!-- Security Notice -->
+                                    <div class="mt-4 flex items-center space-x-2 text-sm text-gray-600">
+                                        <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <span>Your payment information is secure and encrypted</span>
                                     </div>
                                 </div>
+                            }
+                            
+                            <div class="flex justify-between">
+                                <button @onclick="PreviousStep" 
+                                        class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
+                                    ← Back
+                                </button>
+                                <button @onclick="PlaceOrder" disabled="@(!IsStep3Valid() || isProcessingOrder)" 
+                                        class="@(IsStep3Valid() && !isProcessingOrder ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed") px-8 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg">
+                                    @if (isProcessingOrder)
+                                    {
+                                        <span class="flex items-center">
+                                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            Processing...
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>Place Order - €@GetTotal().ToString("F2")</span>
+                                    }
+                                </button>
                             </div>
                         </div>
-
-                        <!-- Step 5: Order Notes -->
-                        <div class="mb-8">
-                            <h2 class="text-2xl lg:text-3xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent flex items-center">
-                                <span class="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">@(orderType == OrderType.Delivery ? "5" : "4")</span>
-                                Special Instructions (Optional)
-                            </h2>
-                            <textarea @bind="orderNotes" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" rows="4" placeholder="Any special requests? (e.g., 'no wasabi', 'extra ginger', 'call when you arrive')"></textarea>
-                        </div>
-                        </div>
+                    }
                     </div>
 
                     <!-- Order Summary -->
                     <div class="lg:col-span-1">
-                    <div class="bg-white rounded-2xl shadow-xl p-6 sticky top-20 border border-gray-100">
-                        <h3 class="text-xl lg:text-2xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Order Summary</h3>
+                    <div class="bg-white rounded-3xl shadow-card border border-gray-100 p-8 sticky top-8">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Order Summary</h3>
                         
-                        <!-- Order Items -->
-                        <div class="space-y-4 mb-6 max-h-60 overflow-y-auto">
+                        <div class="space-y-4 mb-6">
                             @foreach (var item in cartItems)
                             {
-                                <div class="flex justify-between items-start border-b border-gray-200 pb-3">
+                                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
+                                    <img src="@GetItemImageUrl(item)" alt="@GetItemName(item)" class="w-16 h-16 object-cover rounded-lg" />
                                     <div class="flex-1">
-                                        <h4 class="font-semibold text-sm text-gray-900">@item.Name</h4>
-                                        <p class="text-xs text-gray-600">Qty: @item.Quantity</p>
+                                        <h4 class="font-semibold text-gray-900 text-sm">@GetItemName(item)</h4>
+                                        <p class="text-sm text-gray-600">Qty: @item.Quantity</p>
                                     </div>
-                                    <span class="font-bold text-sm text-gray-900">€@item.TotalPrice.ToString("F2")</span>
+                                    <div class="text-right">
+                                        <div class="font-bold text-gray-900">€@item.TotalPrice.ToString("F2")</div>
+                                    </div>
                                 </div>
                             }
                                     </div>
                         
-                        <!-- Summary Details -->
-                        <div class="space-y-3 mb-6">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Subtotal</span>
-                                <span class="font-medium">€@GetSubtotal().ToString("F2")</span>
+                        <div class="border-t border-gray-200 pt-6 space-y-3">
+                            <div class="flex justify-between text-gray-600">
+                                <span>Subtotal</span>
+                                <span>€@GetSubtotal().ToString("F2")</span>
                             </div>
+                            
                             @if (orderType == OrderType.Delivery)
                             {
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-600">Delivery Fee</span>
-                                    <span class="font-medium">€3.50</span>
+                                <div class="flex justify-between text-gray-600">
+                                    <span>Delivery Fee</span>
+                                    <span>€3.50</span>
                                     </div>
                                 }
+                            
+                            <div class="flex justify-between text-gray-600">
+                                <span>Tax (6%)</span>
+                                <span>€@GetTax().ToString("F2")</span>
+                            </div>
+                            
                             <div class="border-t border-gray-200 pt-3">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-lg font-bold text-gray-900">Total</span>
-                                    <span class="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">€@GetTotal().ToString("F2")</span>
-                                </div>
+                                    <span class="text-xl font-bold text-gray-900">Total</span>
+                                    <span class="text-2xl font-bold text-green-600">€@GetTotal().ToString("F2")</span>
                                 </div>
                             </div>
-
-                        <!-- Place Order Button -->
-                        <button @onclick="PlaceOrder" 
-                                disabled="@(!IsFormValid())"
-                                class="w-full py-4 px-6 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transform transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none @(IsFormValid() ? "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 hover:scale-105" : "bg-gray-400")">
-                            <div class="flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
-                                </svg>
-                                Place Order - €@GetTotal().ToString("F2")
                             </div>
-                        </button>
                         
-                        <!-- Back to Cart -->
-                        <a href="/cart" class="block w-full mt-3 py-3 px-6 rounded-xl font-semibold text-center text-green-600 border-2 border-green-300 hover:border-green-400 hover:bg-green-50 transition-all duration-300">
-                            ← Back to Cart
-                        </a>
-                        
-                        <!-- Security Notice -->
-                        <div class="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
-                                </svg>
-                                <span class="text-sm text-green-800 font-medium">Your order is secured with 256-bit encryption</span>
+                        <!-- Estimated Time -->
+                        <div class="mt-6 bg-green-50 border border-green-200 rounded-xl p-4">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-green-500">⏱️</span>
+                                <div>
+                                    <div class="font-semibold text-green-800">
+                                        @(orderType == OrderType.Delivery ? "Delivery Time" : "Pickup Time")
+                                    </div>
+                                    <div class="text-sm text-green-700">
+                                        @(orderType == OrderType.Delivery ? "25-35 minutes" : "15-20 minutes")
+                                    </div>
+                                </div>
                             </div>
                             </div>
                         </div>
@@ -284,17 +434,18 @@
             }
         else
         {
-            <!-- Empty Cart Redirect -->
-            <div class="text-center py-16">
-                <div class="bg-white rounded-2xl shadow-xl p-12 max-w-md mx-auto">
-                    <div class="text-8xl mb-6">🛒</div>
-                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
-                    <p class="text-gray-600 mb-8">Add some delicious sushi rolls before checkout!</p>
-                    
-                    <a href="/menu" class="block w-full py-4 px-6 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transform transition-all duration-300 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 hover:scale-105">
-                        Browse Our Menu
-                    </a>
+            <!-- Empty Cart -->
+            <div class="text-center py-20">
+                <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span class="text-4xl">🛒</span>
                 </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h3>
+                <p class="text-gray-600 mb-8">Add some delicious sushi to your cart to continue</p>
+                <button @onclick="@(() => Navigation.NavigateTo("/menu"))" 
+                        class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl">
+                    <span class="mr-2">🍣</span>
+                    Browse Menu
+                </button>
         </div>
         }
     </div>
@@ -302,10 +453,14 @@
 
 @code {
     private List<CartItem> cartItems = new();
+    private int currentStep = 1;
+    private bool isProcessingOrder = false;
     
-    // Form fields
-    private OrderType orderType = OrderType.Delivery;
+    // Order details
+    private OrderType? orderType = null;
     private PaymentMethod paymentMethod = PaymentMethod.Stripe;
+    
+    // Customer information
     private string customerName = "";
     private string customerEmail = "";
     private string customerPhone = "";
@@ -314,6 +469,12 @@
     private string postalCode = "";
     private string country = "Belgium";
     private string orderNotes = "";
+    
+    // Payment information
+    private string cardNumber = "";
+    private string expiryDate = "";
+    private string cvv = "";
+    private string cardholderName = "";
 
     protected override void OnInitialized()
     {
@@ -324,9 +485,15 @@
         {
             Navigation.NavigateTo("/cart");
         }
+        
+        // Pre-fill cardholder name with customer name if available
+        if (!string.IsNullOrEmpty(customerName))
+        {
+            cardholderName = customerName;
+        }
     }
 
-    private void SelectOrderType(OrderType type)
+    private void SelectOrderType(OrderType? type)
     {
         orderType = type;
         StateHasChanged();
@@ -338,19 +505,30 @@
         StateHasChanged();
     }
 
-    private decimal GetSubtotal()
+    private void NextStep()
     {
-        return CartService.GetTotalPrice();
+        if (currentStep < 3)
+        {
+            currentStep++;
+            StateHasChanged();
+        }
     }
 
-    private decimal GetTotal()
+    private void PreviousStep()
     {
-        var subtotal = GetSubtotal();
-        var deliveryFee = orderType == OrderType.Delivery ? 3.50m : 0m;
-        return subtotal + deliveryFee;
+        if (currentStep > 1)
+        {
+            currentStep--;
+            StateHasChanged();
+        }
     }
 
-    private bool IsFormValid()
+    private void ValidateForm()
+    {
+        StateHasChanged();
+    }
+
+    private bool IsStep2Valid()
     {
         var hasBasicInfo = !string.IsNullOrWhiteSpace(customerName) &&
                           !string.IsNullOrWhiteSpace(customerEmail) &&
@@ -360,24 +538,183 @@
         {
             return hasBasicInfo &&
                    !string.IsNullOrWhiteSpace(deliveryAddress) &&
-                   !string.IsNullOrWhiteSpace(city) &&
                    !string.IsNullOrWhiteSpace(postalCode);
         }
 
         return hasBasicInfo;
     }
 
-    private void PlaceOrder()
+    private bool IsStep3Valid()
     {
-        if (!IsFormValid() || !cartItems.Any()) return;
+        if (paymentMethod == PaymentMethod.Stripe)
+        {
+            return !string.IsNullOrWhiteSpace(cardNumber) &&
+                   !string.IsNullOrWhiteSpace(expiryDate) &&
+                   !string.IsNullOrWhiteSpace(cvv) &&
+                   !string.IsNullOrWhiteSpace(cardholderName) &&
+                   cardNumber.Replace(" ", "").Length >= 13 &&
+                   cvv.Length >= 3;
+        }
 
-        // Generate order number
-        var orderNumber = $"HS{DateTime.Now:yyyyMMddHHmmss}";
-        
-        // TODO: Create order and send to backend
-        // For now, simulate order placement and redirect to tracking
-        
-        CartService.ClearCart();
-        Navigation.NavigateTo($"/track/{orderNumber}");
+        return paymentMethod == PaymentMethod.CashOnDelivery;
     }
+
+    private async Task PlaceOrder()
+    {
+        if (!IsStep3Valid() || isProcessingOrder) return;
+
+        try
+        {
+            isProcessingOrder = true;
+            StateHasChanged();
+
+            // Create order object
+            var order = new Order
+            {
+                CustomerName = customerName,
+                CustomerEmail = customerEmail,
+                CustomerPhone = customerPhone,
+                Type = orderType ?? OrderType.Pickup, // Provide default value
+                DeliveryAddress = orderType == OrderType.Delivery ? $"{deliveryAddress}, {city}, {postalCode}, {country}" : "",
+                PaymentMethod = paymentMethod,
+                SubtotalAmount = GetSubtotal(),
+                DeliveryFee = orderType == OrderType.Delivery ? 3.50m : 0m,
+                TaxAmount = GetTax(),
+                TotalAmount = GetTotal(),
+                Notes = orderNotes,
+                Items = cartItems.Select(item => new OrderItem
+                {
+                    SushiRollId = item.SushiRoll?.Id,
+                    CustomRollId = item.CustomRoll?.Id,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    Price = item.TotalPrice,
+                    SpecialInstructions = item.Name
+                }).ToList()
+            };
+
+            // Process payment if Stripe
+            if (paymentMethod == PaymentMethod.Stripe)
+            {
+                var paymentRequest = new PaymentRequest
+                {
+                    OrderId = 0, // Will be set after order creation
+                    PaymentMethod = PaymentMethod.Stripe,
+                    Amount = GetTotal(),
+                    PaymentToken = $"{cardNumber}|{expiryDate}|{cvv}|{cardholderName}", // In production, use Stripe tokenization
+                    CustomerEmail = customerEmail,
+                    BillingAddress = orderType == OrderType.Delivery ? deliveryAddress : ""
+                };
+        
+                // Create order first
+                var createdOrder = await ApiService.CreateOrderAsync(order);
+                if (createdOrder != null)
+                {
+                    paymentRequest.OrderId = createdOrder.Id;
+                    
+                    // Process payment
+                    var paymentResult = await ApiService.ProcessPaymentAsync(paymentRequest);
+                    
+                    if (paymentResult?.Success == true)
+                    {
+                        await CompleteOrder(createdOrder);
+                    }
+                    else
+                    {
+                        ToastService.ShowError($"Payment failed: {paymentResult?.ErrorMessage ?? "Unknown error"}", "Payment Error");
+                        isProcessingOrder = false;
+                        StateHasChanged();
+                        return;
+                    }
+                }
+                else
+                {
+                    ToastService.ShowError("Failed to create order", "Order Error");
+                    isProcessingOrder = false;
+                    StateHasChanged();
+                    return;
+                }
+            }
+            else
+            {
+                // Cash payment - just create the order
+                var createdOrder = await ApiService.CreateOrderAsync(order);
+                if (createdOrder != null)
+                {
+                    await CompleteOrder(createdOrder);
+                }
+                else
+                {
+                    ToastService.ShowError("Failed to create order", "Order Error");
+                    isProcessingOrder = false;
+                    StateHasChanged();
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error placing order");
+            ToastService.ShowError("An error occurred while placing your order. Please try again.", "Order Error");
+            isProcessingOrder = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CompleteOrder(Order createdOrder)
+    {
+        // Clear cart
+        CartService.ClearCart();
+        
+        // Show success message
+        ToastService.ShowSuccess("Order placed successfully!", "Success");
+        
+        // Redirect to order confirmation/tracking
+        Navigation.NavigateTo($"/track-order?orderNumber={createdOrder.OrderNumber}");
+    }
+
+    // Helper methods for formatting
+    private void FormatCardNumber(ChangeEventArgs e)
+    {
+        var input = e.Value?.ToString()?.Replace(" ", "") ?? "";
+        var formatted = "";
+        
+        for (int i = 0; i < input.Length && i < 16; i++)
+        {
+            if (i > 0 && i % 4 == 0)
+                formatted += " ";
+            formatted += input[i];
+        }
+        
+        cardNumber = formatted;
+    }
+
+    private void FormatExpiryDate(ChangeEventArgs e)
+    {
+        var input = e.Value?.ToString()?.Replace("/", "") ?? "";
+        if (input.Length >= 2)
+        {
+            expiryDate = input.Substring(0, 2) + "/" + input.Substring(2, Math.Min(2, input.Length - 2));
+    }
+        else
+        {
+            expiryDate = input;
+        }
+    }
+
+    private void FormatCVV(ChangeEventArgs e)
+    {
+        var input = e.Value?.ToString() ?? "";
+        cvv = input.Length <= 4 ? input : input.Substring(0, 4);
+    }
+
+    // Calculation methods
+    private decimal GetSubtotal() => CartService.GetTotalPrice();
+    private decimal GetDeliveryFee() => orderType == OrderType.Delivery ? 3.50m : 0m;
+    private decimal GetTax() => (GetSubtotal() + GetDeliveryFee()) * 0.06m;
+    private decimal GetTotal() => GetSubtotal() + GetDeliveryFee() + GetTax();
+
+    // Helper methods
+    private string GetItemName(CartItem item) => item.SushiRoll?.Name ?? item.CustomRoll?.Name ?? item.Name;
+    private string GetItemImageUrl(CartItem item) => "/images/rolls/default-roll.jpg"; // Would map to actual images
 } 

@@ -2,7 +2,6 @@
 @import "flowbite/src/themes/default";
 @plugin "flowbite/plugin";
 @source "../../node_modules/flowbite";
-@source "../../node_modules/flowbite-datepicker";
 
 /* Hide default Blazor error UI since we're using ErrorBoundary */
 #blazor-error-ui {
@@ -14,6 +13,167 @@
     background: linear-gradient(135deg, #fee, #fdd);
     border-left: 4px solid #dc2626;
     margin: 1rem 0;
+}
+
+/* Disable smooth scrolling completely for better performance */
+* {
+    scroll-behavior: auto !important;
+}
+
+html {
+    scroll-behavior: auto !important;
+}
+
+:root {
+    scroll-behavior: auto !important;
+}
+
+/* Full Page SVG Pattern Background - Enhanced Version (More Visible) */
+body {
+    background-image: url('/images/pattern-background-enhanced.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+
+/* Alternative: Original Subtle Pattern (uncomment to use the very subtle version) */
+/*
+body {
+    background-image: url('/images/pattern-background.svg');
+    background-repeat: repeat;
+    background-size: 800px 600px;
+    background-position: center;
+    background-attachment: fixed;
+    min-height: 100vh;
+    background-color: #fafafa;
+}
+*/
+
+/* Ensure the main app container doesn't override background */
+#app {
+    min-height: 100vh;
+    background: transparent;
+    position: relative;
+}
+
+/* Alternative body background options */
+.body-pattern-repeat {
+    background-image: url('/images/pattern-background-enhanced.svg');
+    background-repeat: repeat;
+    background-size: 800px 600px;
+    background-position: center;
+    min-height: 100vh;
+}
+
+.body-pattern-tile {
+    background-image: url('/images/pattern-background-enhanced.svg');
+    background-repeat: repeat;
+    background-size: 400px 300px;
+    background-position: top left;
+    min-height: 100vh;
+}
+
+.body-pattern-subtle {
+    background-image: url('/images/pattern-background.svg');
+    background-repeat: repeat;
+    background-size: 600px 450px;
+    background-position: center;
+    min-height: 100vh;
+    background-color: #fafafa;
+}
+
+/* SVG Pattern Background Classes */
+.bg-pattern {
+    background-image: url('/images/pattern-background-enhanced.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+}
+
+.bg-pattern-repeat {
+    background-image: url('/images/pattern-background-enhanced.svg');
+    background-repeat: repeat;
+    background-size: 400px 300px;
+    background-position: center;
+}
+
+.bg-pattern-fixed {
+    background-image: url('/images/pattern-background-enhanced.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.bg-pattern-subtle {
+    background-image: url('/images/pattern-background.svg');
+    background-repeat: repeat;
+    background-size: 600px 450px;
+    background-position: center;
+    background-color: #fafafa;
+}
+
+/* Pattern overlay with different opacity levels */
+.pattern-overlay {
+    position: relative;
+}
+
+.pattern-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('/images/pattern-background-enhanced.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.1;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.pattern-overlay-light::before {
+    opacity: 0.05;
+}
+
+.pattern-overlay-medium::before {
+    opacity: 0.15;
+}
+
+.pattern-overlay-strong::before {
+    opacity: 0.25;
+}
+
+/* Combination with gradients */
+.bg-pattern-gradient {
+    background: 
+        linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%),
+        url('/images/pattern-background-enhanced.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+}
+
+.bg-pattern-gradient-green {
+    background: 
+        linear-gradient(135deg, rgba(236, 253, 245, 0.9) 0%, rgba(209, 250, 229, 0.8) 100%),
+        url('/images/pattern-background-enhanced.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+}
+
+.bg-pattern-gradient-blue {
+    background: 
+        linear-gradient(135deg, rgba(239, 246, 255, 0.9) 0%, rgba(219, 234, 254, 0.8) 100%),
+        url('/images/pattern-background-enhanced.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
 }
 
 /* Text shadow utilities for better readability over images */
@@ -105,35 +265,206 @@ button, .btn {
     user-select: none;
 }
 
-/* Custom animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Glass morphism effect */
+.glass-effect {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hover-glow:hover {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #8b5cf6, #3b82f6);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, #7c3aed, #2563eb);
+}
+
+/* Animation delays */
+.animation-delay-2000 {
+    animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+    animation-delay: 4s;
+}
+
+/* Enhanced Toast Animations */
+@keyframes toast-shrink {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+@keyframes toast-slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(100%) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes toast-pulse-glow {
+    0%, 100% { 
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+    }
+    50% { 
+        box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);
+    }
+}
+
+/* Toast Animation Classes */
+.toast-progress {
+    animation: toast-shrink linear forwards;
+}
+
+.toast-success-glow {
+    animation: toast-pulse-glow 2s ease-in-out infinite;
+}
+
+.toast-slide-in {
+    animation: toast-slide-in-right 0.7s ease-out forwards;
+}
+
+/* Enhanced UI Animations */
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33% { transform: translateY(-10px) rotate(1deg); }
+    66% { transform: translateY(-5px) rotate(-1deg); }
+}
+
+@keyframes float-delayed {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33% { transform: translateY(-15px) rotate(-1deg); }
+    66% { transform: translateY(-8px) rotate(1deg); }
+}
+
+@keyframes float-slow {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-12px) rotate(0.5deg); }
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Sushi Restaurant Background Patterns */
+@keyframes pattern-float {
+    0%, 100% { transform: translateX(0) translateY(0) rotate(0deg); }
+    25% { transform: translateX(-5px) translateY(-10px) rotate(1deg); }
+    50% { transform: translateX(0) translateY(-15px) rotate(0deg); }
+    75% { transform: translateX(5px) translateY(-8px) rotate(-1deg); }
+}
+
+@keyframes sakura-drift {
+    0% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); opacity: 0.8; }
+    50% { transform: translateX(20px) translateY(-30px) rotate(180deg) scale(1.1); opacity: 0.4; }
+    100% { transform: translateX(-10px) translateY(-60px) rotate(360deg) scale(0.9); opacity: 0.1; }
+}
+
+@keyframes wave-flow {
+    0% { transform: translateX(0) scaleX(1); }
+    50% { transform: translateX(-20px) scaleX(1.05); }
+    100% { transform: translateX(-40px) scaleX(1); }
+}
+
+@keyframes bamboo-sway {
+    0%, 100% { transform: rotate(0deg) translateX(0); }
+    25% { transform: rotate(1deg) translateX(2px); }
+    75% { transform: rotate(-1deg) translateX(-2px); }
+}
+
+/* Animation Classes */
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+    animation: float-delayed 7s ease-in-out infinite;
+}
+
+.animate-float-slow {
+    animation: float-slow 8s ease-in-out infinite;
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.8s ease-out;
+    animation: fade-in-up 1s ease-out forwards;
 }
 
-/* Development debugging - show console errors in UI during development */
-@media (max-width: 1024px) {
-  .debug-info {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    z-index: 9999;
-    max-width: 200px;
-    display: none; /* Hidden by default, can be shown via JS */
-  }
+.animate-pattern-float {
+    animation: pattern-float 12s ease-in-out infinite;
+}
+
+.animate-sakura-drift {
+    animation: sakura-drift 15s linear infinite;
+}
+
+.animate-wave-flow {
+    animation: wave-flow 10s ease-in-out infinite;
+}
+
+.animate-bamboo-sway {
+    animation: bamboo-sway 8s ease-in-out infinite;
+}
+
+/* Card hover effect */
+.card-hover {
+    transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Button hover lift effect */
+.btn-hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Gradient text */
+.gradient-text {
+    background: linear-gradient(135deg, #10b981, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Focus ring for accessibility */
+.focus-ring {
+    outline: none;
+}
+
+.focus-ring:focus {
+    outline: 2px solid #10b981;
+    outline-offset: 2px;
 } 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using HidaSushi.Server.Data;
 using HidaSushi.Shared.Models;
@@ -10,95 +11,72 @@ namespace HidaSushi.Server.Controllers;
 public class SushiRollsController : ControllerBase
 {
     private readonly HidaSushiDbContext _context;
-    private readonly ILogger<SushiRollsController> _logger;
 
-    public SushiRollsController(HidaSushiDbContext context, ILogger<SushiRollsController> logger)
+    public SushiRollsController(HidaSushiDbContext context)
     {
         _context = context;
-        _logger = logger;
     }
 
     // GET: api/SushiRolls
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<SushiRoll>>> GetSushiRolls()
     {
-        try
-        {
-            return await _context.SushiRolls
-                .Where(r => r.IsAvailable)
-                .OrderBy(r => r.Price)
-                .ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching sushi rolls");
-            return StatusCode(500, "Internal server error");
-        }
-    }
-
-    // GET: api/SushiRolls/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<SushiRoll>> GetSushiRoll(int id)
-    {
-        try
-        {
-            var sushiRoll = await _context.SushiRolls.FindAsync(id);
-
-            if (sushiRoll == null)
-            {
-                return NotFound();
-            }
-
-            return sushiRoll;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching sushi roll with id {Id}", id);
-            return StatusCode(500, "Internal server error");
-        }
+        var rolls = await _context.SushiRolls.AsNoTracking().ToListAsync();
+        return Ok(rolls);
     }
 
     // GET: api/SushiRolls/signature
     [HttpGet("signature")]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<SushiRoll>>> GetSignatureRolls()
     {
-        try
-        {
-            return await _context.SushiRolls
+        var rolls = await _context.SushiRolls
+            .AsNoTracking()
                 .Where(r => r.IsSignatureRoll && r.IsAvailable)
-                .OrderBy(r => r.Price)
                 .ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching signature rolls");
-            return StatusCode(500, "Internal server error");
-        }
+        return Ok(rolls);
     }
 
     // GET: api/SushiRolls/vegetarian
     [HttpGet("vegetarian")]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<SushiRoll>>> GetVegetarianRolls()
     {
-        try
-        {
-            return await _context.SushiRolls
-                .Where(r => r.IsAvailable && 
-                           (r.Name.Contains("Garden") || 
-                            !r.Allergens.Any(a => a == "Fish" || a == "Shellfish" || a == "Beef")))
-                .OrderBy(r => r.Price)
+        var rolls = await _context.SushiRolls
+            .AsNoTracking()
+            .Where(r => r.IsVegetarian && r.IsAvailable)
                 .ToListAsync();
-        }
-        catch (Exception ex)
+        return Ok(rolls);
+    }
+
+    // GET: api/SushiRolls/5
+    [HttpGet("{id}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<SushiRoll>> GetSushiRoll(int id)
         {
-            _logger.LogError(ex, "Error fetching vegetarian rolls");
-            return StatusCode(500, "Internal server error");
+        var sushiRoll = await _context.SushiRolls.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
+        if (sushiRoll == null)
+        {
+            return NotFound();
         }
+        return Ok(sushiRoll);
+    }
+
+    // POST: api/SushiRolls
+    [HttpPost]
+    [Authorize]
+    public async Task<ActionResult<SushiRoll>> CreateSushiRoll([FromBody] SushiRoll sushiRoll)
+    {
+        _context.SushiRolls.Add(sushiRoll);
+        await _context.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetSushiRoll), new { id = sushiRoll.Id }, sushiRoll);
     }
 
     // PUT: api/SushiRolls/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutSushiRoll(int id, SushiRoll sushiRoll)
+    [Authorize]
+    public async Task<IActionResult> UpdateSushiRoll(int id, [FromBody] SushiRoll sushiRoll)
     {
         if (id != sushiRoll.Id)
         {
@@ -113,7 +91,8 @@ public class SushiRollsController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!SushiRollExists(id))
+            var exists = await _context.SushiRolls.AnyAsync(e => e.Id == id);
+            if (!exists)
             {
                 return NotFound();
             }
@@ -122,38 +101,14 @@ public class SushiRollsController : ControllerBase
                 throw;
             }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating sushi roll with id {Id}", id);
-            return StatusCode(500, "Internal server error");
-        }
 
         return NoContent();
     }
 
-    // POST: api/SushiRolls
-    [HttpPost]
-    public async Task<ActionResult<SushiRoll>> PostSushiRoll(SushiRoll sushiRoll)
-    {
-        try
-        {
-            _context.SushiRolls.Add(sushiRoll);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetSushiRoll", new { id = sushiRoll.Id }, sushiRoll);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating sushi roll");
-            return StatusCode(500, "Internal server error");
-        }
-    }
-
     // DELETE: api/SushiRolls/5
     [HttpDelete("{id}")]
+    [Authorize]
     public async Task<IActionResult> DeleteSushiRoll(int id)
-    {
-        try
         {
             var sushiRoll = await _context.SushiRolls.FindAsync(id);
             if (sushiRoll == null)
@@ -161,21 +116,26 @@ public class SushiRollsController : ControllerBase
                 return NotFound();
             }
 
-            // Soft delete by marking as unavailable
-            sushiRoll.IsAvailable = false;
+        _context.SushiRolls.Remove(sushiRoll);
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting sushi roll with id {Id}", id);
-            return StatusCode(500, "Internal server error");
-        }
-    }
 
-    private bool SushiRollExists(int id)
+    // PATCH: api/SushiRolls/5/availability
+    [HttpPatch("{id}/availability")]
+    [Authorize]
+    public async Task<IActionResult> ToggleAvailability(int id)
     {
-        return _context.SushiRolls.Any(e => e.Id == id);
+        var sushiRoll = await _context.SushiRolls.FindAsync(id);
+        if (sushiRoll == null)
+        {
+            return NotFound();
+        }
+
+        sushiRoll.IsAvailable = !sushiRoll.IsAvailable;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { IsAvailable = sushiRoll.IsAvailable });
     }
 } 

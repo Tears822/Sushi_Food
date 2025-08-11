@@ -7,7 +7,7 @@
     <title>HIDA SUSHI - Premium Sushi by Jonathan</title>
     <base href="/" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="stylesheet" href="css/output.css" />
+    <link rel="stylesheet" href="css/output.css?v=2024010101" />
     
     <!-- Stripe.js -->
     <script src="https://js.stripe.com/v3/"></script>
@@ -17,10 +17,11 @@
 
 <body>
     <div id="app">
-        <div class="flex items-center justify-center h-screen bg-gradient-to-br from-purple-600 via-pink-600 to-amber-500">
-            <div class="text-center text-white">
+        <div class="flex items-center justify-center h-screen bg-white/30 backdrop-blur-sm">
+            <div class="text-center text-gray-900 bg-white/80 backdrop-blur-lg rounded-3xl p-12 shadow-2xl">
                 <div class="text-6xl mb-4 animate-bounce">🍣</div>
                 <div class="text-2xl font-bold font-poppins">Loading HIDA SUSHI...</div>
+                <div class="mt-4 w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
             </div>
         </div>
     </div>
@@ -31,13 +32,20 @@
         <a class="text-gray-600 hover:text-gray-800 ml-4 cursor-pointer">🗙</a>
     </div>
     
-    <script src="_framework/blazor.webassembly.js"></script>
-    <script>navigator.serviceWorker.register('service-worker.js');</script>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
     
     <!-- Custom Stripe integration -->
     <script src="js/stripe.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <!-- Local Flowbite -->
+    <script src="js/flowbite.min.js"></script>
     <script src="js/flowbite-interop.js"></script>
+    <!-- Culture management for localization -->
+    <script src="js/cultureInfo.js"></script>
+    
+    <script>
+        // Start Blazor without setting culture (handled in C#)
+        Blazor.start();
+    </script>
 </body>
 
 </html>

@@ -148,4 +148,43 @@ public class CustomerService
         var passwordHash = HashPassword(password);
         return passwordHash == hash;
     }
+
+    public async Task<Customer> CreateCustomerAsync(Customer customer)
+    {
+        try
+        {
+            customer.CreatedAt = DateTime.UtcNow;
+            customer.UpdatedAt = DateTime.UtcNow;
+            
+            _context.Customers.Add(customer);
+            await _context.SaveChangesAsync();
+            
+            _logger.LogInformation("Customer created: {CustomerId} - {Email}", customer.Id, customer.Email);
+            return customer;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating customer: {Email}", customer.Email);
+            throw;
+        }
+    }
+
+    public async Task<Customer> UpdateCustomerAsync(Customer customer)
+    {
+        try
+        {
+            customer.UpdatedAt = DateTime.UtcNow;
+            
+            _context.Customers.Update(customer);
+            await _context.SaveChangesAsync();
+            
+            _logger.LogInformation("Customer updated: {CustomerId} - {Email}", customer.Id, customer.Email);
+            return customer;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating customer: {CustomerId}", customer.Id);
+            throw;
+        }
+    }
 } 
