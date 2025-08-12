@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HidaSushi.Server.Services;
 using HidaSushi.Shared.Models;
+using System.Text.Json;
 
 namespace HidaSushi.Server.Controllers;
 
@@ -36,7 +37,7 @@ public class OrdersController : ControllerBase
 
     // GET: api/Orders/{id}
     [HttpGet("{id}")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<ActionResult<Order>> GetOrder(int id)
     {
         var order = await _orderService.GetOrderByIdAsync(id);
@@ -72,17 +73,58 @@ public class OrdersController : ControllerBase
     // PUT: api/Orders/{id}/status
     [HttpPut("{id}/status")]
     [Authorize]
-    public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] OrderStatusUpdate update)
+    public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] JsonElement update)
+    {
+        OrderStatus statusEnum;
+        
+        // Handle both formats: { Status: enum } and { newStatus: string }
+        if (update.TryGetProperty("newStatus", out var newStatusProp))
         {
-        var success = await _orderService.UpdateOrderStatusAsync(id, update.Status);
-        if (!success)
+            var statusString = newStatusProp.GetString();
+            if (!Enum.TryParse<OrderStatus>(statusString, out statusEnum))
             {
-                return NotFound();
+                return BadRequest("Invalid status value");
             }
+        }
+        else if (update.TryGetProperty("Status", out var statusProp))
+        {
+            if (statusProp.ValueKind == JsonValueKind.String)
+            {
+                var statusString = statusProp.GetString();
+                if (!Enum.TryParse<OrderStatus>(statusString, out statusEnum))
+                {
+                    return BadRequest("Invalid status value");
+                }
+            }
+            else if (statusProp.ValueKind == JsonValueKind.Number)
+            {
+                var statusValue = statusProp.GetInt32();
+                if (!Enum.IsDefined(typeof(OrderStatus), statusValue))
+                {
+                    return BadRequest("Invalid status value");
+                }
+                statusEnum = (OrderStatus)statusValue;
+            }
+            else
+            {
+                return BadRequest("Invalid status value format");
+            }
+        }
+        else
+        {
+            return BadRequest("Missing status field");
+        }
+
+        var success = await _orderService.UpdateOrderStatusAsync(id, statusEnum);
+        if (!success)
+        {
+            return NotFound();
+        }
+        
         var order = await _orderService.GetOrderByIdAsync(id);
         return Ok(order);
-        }
     }
+}
 
 public class OrderStatusUpdate
 {

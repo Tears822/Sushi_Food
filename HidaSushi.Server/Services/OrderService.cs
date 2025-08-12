@@ -27,8 +27,14 @@ public class OrderService
 
     public async Task<Order> CreateOrderAsync(Order order)
     {
-        // Generate order number
-        order.OrderNumber = GenerateOrderNumber();
+        _logger.LogInformation("Creating new order for customer: {CustomerName}", order.CustomerName);
+        
+        // Generate order number if not provided
+        if (string.IsNullOrEmpty(order.OrderNumber))
+        {
+            order.OrderNumber = GenerateOrderNumber();
+        }
+        
         order.CreatedAt = DateTime.UtcNow;
         order.UpdatedAt = DateTime.UtcNow;
         order.Status = OrderStatus.Received;
@@ -37,11 +43,22 @@ public class OrderService
         order.EstimatedDeliveryTime = DateTime.UtcNow.AddMinutes(
             order.Type == OrderType.Pickup ? 30 : 60);
 
+        // Clear any circular references in OrderItems
+        foreach (var item in order.Items)
+        {
+            item.Order = null; // Clear to avoid circular reference during validation
+            item.OrderId = 0; // Will be set by EF Core
+        }
+
         // Calculate totals
         CalculateOrderTotals(order);
 
+        _logger.LogInformation("Adding order to database with order number: {OrderNumber}", order.OrderNumber);
+        
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Order saved successfully with ID: {OrderId} and order number: {OrderNumber}", order.Id, order.OrderNumber);
 
         // Add initial status history
         await AddStatusHistoryAsync(order.Id, null, OrderStatus.Received.ToString(), "Order received");
@@ -53,7 +70,7 @@ public class OrderService
             await _orderHub.Clients.Group($"Customer_{order.CustomerId}").SendAsync("OrderCreated", order);
         }
 
-        _logger.LogInformation("New order created: {OrderNumber} for {CustomerName}", order.OrderNumber, order.CustomerName);
+        _logger.LogInformation("New order created: {OrderNumber} for {CustomerName} with ID: {OrderId}", order.OrderNumber, order.CustomerName, order.Id);
         return order;
     }
 
@@ -148,7 +165,7 @@ public class OrderService
     public async Task<List<OrderStatusHistory>> GetOrderStatusHistoryAsync(int orderId)
     {
         return await _context.OrderStatusHistory
-            .Include(h => h.ChangedByUser)
+            .Include(h => h.UpdatedByUser)
             .Where(h => h.OrderId == orderId)
             .OrderByDescending(h => h.CreatedAt)
             .ToListAsync();
@@ -201,7 +218,7 @@ public class OrderService
             OrderId = orderId,
             PreviousStatus = previousStatus ?? "",
             NewStatus = newStatus,
-            ChangedBy = changedBy,
+            UpdatedBy = changedBy,
             Notes = notes,
             CreatedAt = DateTime.UtcNow
         };
@@ -214,13 +231,31 @@ public class OrderService
     {
         try
         {
+            _logger.LogInformation("Attempting to update payment status for order ID: {OrderId} to status: {Status}", orderId, status);
+            
             var order = await _context.Orders.FindAsync(orderId);
             if (order == null)
             {
                 _logger.LogWarning("Order {OrderId} not found for payment status update", orderId);
+                
+                // Let's also check if there are any orders in the database at all
+                var orderCount = await _context.Orders.CountAsync();
+                _logger.LogWarning("Total orders in database: {OrderCount}", orderCount);
+                
+                // Check if there are any recent orders
+                var recentOrders = await _context.Orders
+                    .OrderByDescending(o => o.CreatedAt)
+                    .Take(5)
+                    .Select(o => new { o.Id, o.OrderNumber, o.CreatedAt })
+                    .ToListAsync();
+                    
+                _logger.LogWarning("Recent orders: {@RecentOrders}", recentOrders);
+                
                 return false;
             }
 
+            _logger.LogInformation("Found order {OrderId} with number {OrderNumber}, updating payment status", orderId, order.OrderNumber);
+            
             order.PaymentStatus = status;
             if (!string.IsNullOrEmpty(transactionId))
             {

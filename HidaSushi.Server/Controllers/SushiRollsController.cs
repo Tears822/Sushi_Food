@@ -8,6 +8,7 @@ namespace HidaSushi.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/sushis")] // Add alternative route for admin panel
 public class SushiRollsController : ControllerBase
 {
     private readonly HidaSushiDbContext _context;
@@ -22,7 +23,11 @@ public class SushiRollsController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<SushiRoll>>> GetSushiRolls()
     {
-        var rolls = await _context.SushiRolls.AsNoTracking().ToListAsync();
+        var rolls = await _context.SushiRolls
+            .AsNoTracking()
+            .Where(r => r.IsAvailable)
+            .OrderBy(r => r.Name)
+            .ToListAsync();
         return Ok(rolls);
     }
 
@@ -126,6 +131,23 @@ public class SushiRollsController : ControllerBase
     [HttpPatch("{id}/availability")]
     [Authorize]
     public async Task<IActionResult> ToggleAvailability(int id)
+    {
+        var sushiRoll = await _context.SushiRolls.FindAsync(id);
+        if (sushiRoll == null)
+        {
+            return NotFound();
+        }
+
+        sushiRoll.IsAvailable = !sushiRoll.IsAvailable;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { IsAvailable = sushiRoll.IsAvailable });
+    }
+
+    // PUT: api/SushiRolls/5/toggle-availability (Admin panel compatibility)
+    [HttpPut("{id}/toggle-availability")]
+    [Authorize]
+    public async Task<IActionResult> ToggleAvailabilityAdmin(int id)
     {
         var sushiRoll = await _context.SushiRolls.FindAsync(id);
         if (sushiRoll == null)

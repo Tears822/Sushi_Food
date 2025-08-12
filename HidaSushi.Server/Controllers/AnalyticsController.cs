@@ -35,7 +35,6 @@ public class AnalyticsController : ControllerBase
                 .ThenInclude(i => i.SushiRoll)
                 .Include(o => o.Items)
                 .ThenInclude(i => i.CustomRoll)
-                .ThenInclude(cr => cr.SelectedIngredients)
                 .Where(o => o.CreatedAt.Date == targetDate.Date)
                 .ToListAsync();
 

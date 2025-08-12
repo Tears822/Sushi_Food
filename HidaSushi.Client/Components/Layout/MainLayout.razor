@@ -358,7 +358,12 @@
         
         // Subscribe to cart and localization changes
         CartService.OnCartChanged += StateHasChanged;
-        LocalizationService.OnLanguageChanged += StateHasChanged;
+        LocalizationService.OnLanguageChanged += OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged()
+    {
+        InvokeAsync(StateHasChanged);
     }
 
     protected override void OnParametersSet()
@@ -370,7 +375,7 @@
     public void Dispose()
     {
         CartService.OnCartChanged -= StateHasChanged;
-        LocalizationService.OnLanguageChanged -= StateHasChanged;
+        LocalizationService.OnLanguageChanged -= OnLanguageChanged;
     }
 
     private bool IsCurrentPage(string path)

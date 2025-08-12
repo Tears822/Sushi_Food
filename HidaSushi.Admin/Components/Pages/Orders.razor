@@ -2,8 +2,9 @@
 @attribute [Authorize]
 @using Microsoft.AspNetCore.Authorization
 @using HidaSushi.Admin.Services
-@inject AdminApiService AdminApiService
+@inject IAdminApiService AdminApiService
 @inject NavigationManager Navigation
+@inject CustomAuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Order Management - HIDA SUSHI</PageTitle>
 
@@ -315,10 +316,33 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadOrderData();
+        // First, ensure the AdminApiService has the JWT token
+        await EnsureAuthTokenIsSet();
+        await LoadOrders();
     }
 
-    private async Task LoadOrderData()
+    private async Task EnsureAuthTokenIsSet()
+    {
+        try
+        {
+            var token = await AuthStateProvider.GetTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+            {
+                Console.WriteLine($"Setting auth token on AdminApiService (Orders): {token.Substring(0, Math.Min(10, token.Length))}...");
+                AdminApiService.SetAuthToken(token);
+            }
+            else
+            {
+                Console.WriteLine("No auth token found in authentication state");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error ensuring auth token is set: {ex.Message}");
+        }
+    }
+
+    private async Task LoadOrders()
     {
         try
         {
@@ -361,7 +385,7 @@
     {
         try
         {
-            var success = await AdminApiService.UpdateOrderStatusAsync(order.Id, newStatus);
+            var success = await AdminApiService.UpdateOrderStatusAsync(order.Id, newStatus.ToString());
             if (success)
             {
                 order.Status = newStatus;
@@ -439,7 +463,7 @@
         {
             try
             {
-                var success = await AdminApiService.UpdateOrderStatusAsync(selectedOrder.Id, newStatus);
+                var success = await AdminApiService.UpdateOrderStatusAsync(selectedOrder.Id, newStatus.ToString());
                 if (success)
                 {
                     selectedOrder.Status = newStatus;

@@ -417,6 +417,35 @@
     <value>From order to delivery, we focus on creating memorable experiences that bring joy and satisfaction to every customer interaction.</value>
   </data>
   
+  <!-- About Page Additional Missing Entries -->
+  <data name="About.Subtitle" xml:space="preserve">
+    <value>Crafting exceptional sushi experiences with passion, artistry, and authentic Japanese tradition</value>
+  </data>
+  <data name="About.StoryTitle" xml:space="preserve">
+    <value>Our Story</value>
+  </data>
+  <data name="About.StoryDescription2" xml:space="preserve">
+    <value>After years of training under master sushi chefs in Tokyo, Chef Jonathan brought his expertise to Brussels, where he discovered the perfect fusion of Japanese tradition and European innovation. Each roll tells a story, each ingredient has a purpose.</value>
+  </data>
+  <data name="About.StoryDescription3" xml:space="preserve">
+    <value>Today, HIDA SUSHI represents more than just a restaurant—it's a culinary journey that honors the past while embracing the future. We believe that great sushi is not just about taste, but about creating moments of joy and connection.</value>
+  </data>
+  <data name="About.FreshIngredientsCount" xml:space="preserve">
+    <value>Fresh Ingredients</value>
+  </data>
+  <data name="About.ReadyToOrder" xml:space="preserve">
+    <value>Ready to Order?</value>
+  </data>
+  <data name="About.OrderQuestion" xml:space="preserve">
+    <value>Experience the art of exceptional sushi, crafted with passion and delivered with care.</value>
+  </data>
+  <data name="About.ViewMenu" xml:space="preserve">
+    <value>View Menu</value>
+  </data>
+  <data name="About.BuildYourOwn" xml:space="preserve">
+    <value>Build Your Own</value>
+  </data>
+
   <!-- Contact Page -->
   <data name="Contact.Title" xml:space="preserve">
     <value>Contact &amp; Hours - HIDA SUSHI</value>

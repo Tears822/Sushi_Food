@@ -2,8 +2,9 @@
 @attribute [Authorize]
 @using Microsoft.AspNetCore.Authorization
 @using HidaSushi.Admin.Services
-@inject AdminApiService AdminApiService
+@inject IAdminApiService AdminApiService
 @inject NavigationManager Navigation
+@inject CustomAuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Menu Management - HIDA SUSHI</PageTitle>
 
@@ -111,7 +112,51 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach (var roll in sushiRolls)
                     {
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105 flex flex-col h-full">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105 flex flex-col h-full shadow-lg hover:shadow-2xl hover:shadow-purple-500/20">
+                            <!-- Image Section -->
+                            <div class="mb-4 relative group">
+                                @if (!string.IsNullOrEmpty(roll.ImageUrl))
+                                {
+                                    <div class="relative overflow-hidden rounded-xl shadow-2xl border-2 border-white/20 hover:border-white/40 transition-all duration-300">
+                                        @{
+                                            var processedImageUrl = GetImageUrl(roll.ImageUrl);
+                                            Console.WriteLine($"Card Image - Roll: {roll.Name}, Original: '{roll.ImageUrl}', Processed: '{processedImageUrl}'");
+                                        }
+                                        <img src="@processedImageUrl" 
+                                             alt="@roll.Name" 
+                                             class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110" 
+                                             onerror="console.log('Card image failed to load for @roll.Name:', '@processedImageUrl')"
+                                             onload="console.log('Card image loaded successfully for @roll.Name:', '@processedImageUrl')" />
+                                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                        <div class="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                            <span class="text-white text-xs font-medium bg-black/50 px-2 py-1 rounded-full backdrop-blur-sm">
+                                                @roll.Name
+                                            </span>
+                                        </div>
+                                        <!-- Image overlay with quick actions -->
+                                        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                            <div class="flex space-x-1">
+                                                <button @onclick="() => EditRoll(roll)" 
+                                                        class="bg-blue-500/80 hover:bg-blue-600/90 text-white p-1.5 rounded-full transition-colors duration-200 backdrop-blur-sm">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="w-full h-64 bg-gradient-to-br from-gray-600 via-gray-700 to-gray-800 rounded-xl flex items-center justify-center shadow-2xl border-2 border-white/20 hover:border-white/40 transition-all duration-300 group-hover:scale-105">
+                                        <div class="text-center">
+                                            <span class="text-6xl mb-2 block">🍣</span>
+                                            <span class="text-gray-400 text-xs font-medium">No Image</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            
                             <div class="flex items-start justify-between mb-4">
                                 <div class="flex-1">
                                     <h4 class="font-bold text-white font-poppins text-lg">@roll.Name</h4>
@@ -192,6 +237,89 @@
                     <label class="block text-sm font-medium text-gray-300 mb-1">Price (€)</label>
                     <input type="number" step="0.01" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" @bind-value="editingRoll.Price" @bind-value:event="onchange" />
                 </div>
+                
+                <!-- Image Upload Section -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Image</label>
+                    @if (!string.IsNullOrEmpty(editingRoll.ImageUrl))
+                    {
+                        <div class="mb-4">
+                            @{
+                                var imageUrl = GetImageUrl(editingRoll.ImageUrl);
+                                Console.WriteLine($"Modal Image - Original: '{editingRoll.ImageUrl}', Constructed: '{imageUrl}'");
+                            }
+                            <div class="relative overflow-hidden rounded-xl shadow-2xl border-2 border-white/20">
+                                <img src="@imageUrl" 
+                                     alt="@editingRoll.Name" 
+                                     class="w-full h-56 object-cover transition-transform duration-300 hover:scale-105"
+                                     onerror="console.log('Modal image failed to load:', '@imageUrl')"
+                                     onload="console.log('Modal image loaded successfully:', '@imageUrl')" />
+                                <div class="absolute top-2 right-2">
+                                    <button @onclick="() => RemoveImage()" type="button" class="bg-red-500/80 hover:bg-red-600/90 text-white p-2 rounded-full transition-colors duration-200 backdrop-blur-sm">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    
+                    <!-- Custom File Input Styling -->
+                    <div class="space-y-3">
+                        <InputFile OnChange="@OnFileSelected" accept="image/*" class="hidden" id="image-upload" />
+                        <label for="image-upload" 
+                               class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-lg cursor-pointer transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <span>Choose Image File</span>
+                        </label>
+                    </div>
+                    
+                    @if (selectedImageFile != null)
+                    {
+                        <div class="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <p class="text-blue-300 font-medium text-sm">@selectedImageFile.Name</p>
+                                    <p class="text-blue-400 text-xs">@(selectedImageFile.Size / 1024) KB</p>
+                                </div>
+                                @if (!string.IsNullOrEmpty(editingRoll.Name) && !isUploadingImage)
+                                {
+                                    <button @onclick="UploadImage" type="button" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                                        Upload
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                    
+                    @if (isUploadingImage)
+                    {
+                        <div class="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400"></div>
+                                <span class="text-blue-300 text-sm">Uploading image...</span>
+                            </div>
+                        </div>
+                    }
+                    
+                    @if (!string.IsNullOrEmpty(imageUploadError))
+                    {
+                        <div class="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span class="text-red-300 text-sm">@imageUploadError</span>
+                            </div>
+                        </div>
+                    }
+                </div>
                 <div class="flex flex-col space-y-2">
                     <label class="inline-flex items-center space-x-2">
                         <input type="checkbox" @bind="editingRoll.IsAvailable" class="rounded" />
@@ -255,10 +383,38 @@
     private string toastMessage = "";
     private Timer? toastTimer;
     private bool isSuccessToast = true; // Added for success/error differentiation
+    
+    // Image upload variables
+    private bool isUploadingImage = false;
+    private string imageUploadError = "";
+    private IBrowserFile? selectedImageFile;
 
     protected override async Task OnInitializedAsync()
     {
+        // First, ensure the AdminApiService has the JWT token
+        await EnsureAuthTokenIsSet();
         await LoadMenuData();
+    }
+
+    private async Task EnsureAuthTokenIsSet()
+    {
+        try
+        {
+            var token = await AuthStateProvider.GetTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+            {
+                Console.WriteLine($"Setting auth token on AdminApiService: {token.Substring(0, Math.Min(10, token.Length))}...");
+                AdminApiService.SetAuthToken(token);
+            }
+            else
+            {
+                Console.WriteLine("No auth token found in authentication state");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error ensuring auth token is set: {ex.Message}");
+        }
     }
 
     private async Task LoadMenuData()
@@ -282,6 +438,8 @@
     private void ShowAddModal()
     {
         editingRoll = new SushiRoll();
+        selectedImageFile = null;
+        imageUploadError = "";
         showEditor = true;
     }
 
@@ -293,25 +451,40 @@
             Name = roll.Name,
             Description = roll.Description,
             Price = roll.Price,
+            ImageUrl = roll.ImageUrl,
             IsAvailable = roll.IsAvailable,
             IsSignatureRoll = roll.IsSignatureRoll,
             IsVegetarian = roll.IsVegetarian
         };
+        selectedImageFile = null;
+        imageUploadError = "";
         showEditor = true;
     }
 
     private void CloseEditor()
     {
         showEditor = false;
+        selectedImageFile = null;
+        imageUploadError = "";
     }
 
     private async Task SaveRoll()
     {
         var saved = await AdminApiService.SaveSushiRollAsync(editingRoll);
-        if (saved != null)
+        if (saved)
         {
-            var idx = sushiRolls.FindIndex(r => r.Id == saved.Id);
-            if (idx >= 0) sushiRolls[idx] = saved; else sushiRolls.Add(saved);
+            if (editingRoll.Id > 0)
+            {
+                // Update existing roll
+                var idx = sushiRolls.FindIndex(r => r.Id == editingRoll.Id);
+                if (idx >= 0) sushiRolls[idx] = editingRoll;
+            }
+            else
+            {
+                // Add new roll - we need to get the updated roll with ID
+                await LoadMenuData(); // Reload to get the new roll with ID
+            }
+            
             showEditor = false;
             
             // Show success toast
@@ -328,9 +501,9 @@
                 await InvokeAsync(StateHasChanged);
                 toastTimer?.Dispose();
             }, null, 3000, Timeout.Infinite);
-            }
-            else
-            {
+        }
+        else
+        {
             // Show error toast if save failed
             toastMessage = "Failed to save roll";
             showSuccessToast = true;
@@ -384,6 +557,157 @@
         {
             Console.WriteLine($"Error deleting roll: {ex.Message}");
         }
+    }
+
+    private void ShowSuccessToast(string message, bool isSuccess = true)
+    {
+        toastMessage = message;
+        isSuccessToast = isSuccess;
+        showSuccessToast = true;
+        StateHasChanged();
+
+        // Auto-hide toast after 3 seconds
+        toastTimer?.Dispose();
+        toastTimer = new Timer(async _ =>
+        {
+            showSuccessToast = false;
+            await InvokeAsync(StateHasChanged);
+        }, null, 3000, Timeout.Infinite);
+    }
+    
+    // Image upload methods
+    private void OnImageSelected(ChangeEventArgs e)
+    {
+        var input = e.Value as string;
+        if (string.IsNullOrEmpty(input)) return;
+        
+        // For now, we'll use a different approach - let me revert to the InputFile approach
+        // but with better styling
+        StateHasChanged();
+    }
+    
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedImageFile = e.File;
+        imageUploadError = "";
+        
+        if (selectedImageFile != null)
+        {
+            // Validate file size (5MB max)
+            if (selectedImageFile.Size > 5 * 1024 * 1024)
+            {
+                imageUploadError = "File size must be less than 5MB";
+                selectedImageFile = null;
+                return;
+            }
+            
+            // Validate file type
+            var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp", "image/gif" };
+            if (!allowedTypes.Contains(selectedImageFile.ContentType))
+            {
+                imageUploadError = "Only JPG, PNG, WebP, and GIF files are allowed";
+                selectedImageFile = null;
+                return;
+            }
+            
+            // Only upload if we have a name, otherwise wait for user to click upload
+            if (!string.IsNullOrEmpty(editingRoll.Name))
+            {
+                await UploadImage();
+            }
+            else
+            {
+                StateHasChanged(); // Update UI to show the upload button
+            }
+        }
+    }
+    
+    private async Task UploadImage()
+    {
+        if (selectedImageFile == null) return;
+        
+        // Ensure we have a menu item name before uploading
+        if (string.IsNullOrEmpty(editingRoll.Name))
+        {
+            imageUploadError = "Please enter a menu item name before uploading an image";
+            return;
+        }
+        
+        try
+        {
+            isUploadingImage = true;
+            StateHasChanged();
+            
+            using var stream = selectedImageFile.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            var result = await AdminApiService.UploadMenuImageAsync(stream, selectedImageFile.Name, editingRoll.Name, editingRoll.Id > 0 ? editingRoll.Id : null);
+            
+            if (result?.Success == true)
+            {
+                editingRoll.ImageUrl = result.FilePath;
+                imageUploadError = "";
+                ShowSuccessToast("Image uploaded successfully!");
+            }
+            else
+            {
+                imageUploadError = result?.ErrorMessage ?? "Failed to upload image";
+            }
+        }
+        catch (Exception ex)
+        {
+            imageUploadError = $"Error uploading image: {ex.Message}";
+        }
+        finally
+        {
+            isUploadingImage = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task RemoveImage()
+    {
+        if (!string.IsNullOrEmpty(editingRoll.ImageUrl))
+        {
+            try
+            {
+                await AdminApiService.DeleteImageAsync(editingRoll.ImageUrl);
+                editingRoll.ImageUrl = "";
+                ShowSuccessToast("Image removed successfully!");
+            }
+            catch (Exception ex)
+            {
+                ShowSuccessToast($"Error removing image: {ex.Message}", false);
+            }
+        }
+    }
+    
+    private string GetImageUrl(string? imageUrl)
+    {
+        if (string.IsNullOrEmpty(imageUrl))
+            return "/images/placeholder.jpg";
+            
+        // If it's already a full URL, check if it's from our API server
+        if (imageUrl.StartsWith("http"))
+        {
+            if (imageUrl.Contains("apimailbroker.ddns.net"))
+            {
+                // Extract the path and use our proxy
+                var uri = new Uri(imageUrl);
+                var path = uri.PathAndQuery.TrimStart('/');
+                return $"/proxy-image/{path}";
+            }
+            return imageUrl;
+        }
+            
+        // Remove leading slash if present to avoid double slashes
+        var cleanPath = imageUrl.TrimStart('/');
+        
+        // Use the proxy endpoint to serve images from the same domain
+        var proxyUrl = $"/proxy-image/{cleanPath}";
+        
+        // Enhanced debug logging
+        Console.WriteLine($"GetImageUrl - Input: '{imageUrl}', CleanPath: '{cleanPath}', ProxyURL: '{proxyUrl}'");
+        
+        return proxyUrl;
     }
 
     public void Dispose()

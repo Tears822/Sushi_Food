@@ -1,8 +1,10 @@
 ﻿@page "/weather"
 @attribute [Authorize]
-@attribute [StreamRendering]
 @using Microsoft.AspNetCore.Authorization
+@using HidaSushi.Admin.Services
+@inject IWeatherService WeatherService
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Weather Forecast - HIDA SUSHI</PageTitle>
 
@@ -24,10 +26,28 @@
                     </div>
                     <div>
                         <h1 class="text-4xl font-bold text-white mb-2 font-poppins">Weather Forecast</h1>
-                        <p class="text-light-purple text-lg font-inter">Local weather conditions for delivery planning</p>
+                        <p class="text-light-purple text-lg font-inter">
+                            @if (currentWeather != null)
+                            {
+                                <span>@currentWeather.City, @currentWeather.Country - Last updated: @currentWeather.LastUpdated.ToString("HH:mm")</span>
+                            }
+                            else
+                            {
+                                <span>Local weather conditions for delivery planning</span>
+                            }
+                        </p>
                     </div>
                 </div>
                 <div class="hidden md:flex items-center space-x-4">
+                    <button @onclick="RefreshWeather" 
+                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm font-poppins cursor-pointer mr-4">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Refresh
+                        </span>
+                    </button>
                     <button @onclick="@(() => Navigation.NavigateTo("/admin"))" 
                             class="bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm font-poppins cursor-pointer">
                         <span class="flex items-center">
@@ -47,123 +67,159 @@
     </div>
 
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Weather Forecast -->
-        <div class="glass-effect rounded-2xl shadow-professional p-8">
-            <div class="flex items-center justify-between mb-6">
-                <h3 class="text-2xl font-bold text-white font-poppins">5-Day Weather Forecast</h3>
-                <div class="w-12 h-1 bg-gradient-to-r from-royal-purple to-pink-primary rounded-full"></div>
+        @if (isLoading)
+        {
+            <!-- Loading State -->
+            <div class="flex justify-center items-center py-20">
+                <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
             </div>
+        }
+        else if (currentWeather != null)
+        {
+            <!-- Current Weather Card -->
+            <div class="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-8 mb-8 border border-gray-200/50">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-3xl font-bold text-gray-900">Current Weather</h2>
+                    <div class="flex items-center space-x-4">
+                        <img src="https://openweathermap.org/img/wn/@(currentWeather.Icon)@@2x.png" 
+                             alt="@currentWeather.Description" class="w-16 h-16">
+                    </div>
+                </div>
 
-@if (forecasts == null)
-{
-                <div class="flex items-center justify-center py-12">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-royal-purple"></div>
-                    <span class="ml-3 text-gray-300 font-inter">Loading weather data...</span>
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    <!-- Temperature -->
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-blue-600 mb-2">@currentWeather.Temperature°C</div>
+                        <div class="text-gray-600">Temperature</div>
+                        <div class="text-sm text-gray-500">Feels like @currentWeather.FeelsLike°C</div>
+                    </div>
+
+                    <!-- Humidity -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-cyan-600 mb-2">@currentWeather.Humidity%</div>
+                        <div class="text-gray-600">Humidity</div>
+                    </div>
+
+                    <!-- Wind -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600 mb-2">@currentWeather.WindSpeed.ToString("F1") m/s</div>
+                        <div class="text-gray-600">Wind Speed</div>
+                    </div>
+
+                    <!-- Pressure -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-purple-600 mb-2">@currentWeather.Pressure hPa</div>
+                        <div class="text-gray-600">Pressure</div>
+                    </div>
+
+                    <!-- Visibility -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-orange-600 mb-2">@currentWeather.Visibility.ToString("F1") km</div>
+                        <div class="text-gray-600">Visibility</div>
+                    </div>
                 </div>
-}
-else
-{
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            @foreach (var forecast in forecasts)
-            {
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
-                            <div class="text-center">
-                                <h4 class="font-bold text-white font-poppins text-lg mb-2">@forecast.Date.ToString("ddd")</h4>
-                                <p class="text-gray-300 font-inter text-sm mb-3">@forecast.Date.ToString("MMM dd")</p>
-                                
-                                <div class="text-center mb-4">
-                                    <span class="text-4xl">@GetWeatherIcon(forecast.Summary)</span>
-                                </div>
-                                
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-gray-300 font-inter text-sm">High:</span>
-                                        <span class="text-white font-bold font-poppins">@forecast.TemperatureC°C</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-gray-300 font-inter text-sm">Low:</span>
-                                        <span class="text-blue-300 font-bold font-poppins">@(forecast.TemperatureC - 5)°C</span>
-                                    </div>
-                                    <div class="mt-3">
-                                        <span class="px-2 py-1 rounded-full text-xs font-semibold @GetWeatherBadgeClass(forecast.Summary) font-inter">
-                                            @forecast.Summary
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-            }
-                </div>
-                
-                <!-- Delivery Impact Notice -->
-                <div class="mt-8 p-6 bg-blue-500/20 border border-blue-500/30 rounded-xl">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-blue-500/30 rounded-full flex items-center justify-center">
-                            <span class="text-blue-300">ℹ️</span>
-                        </div>
+
+                <div class="mt-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <h4 class="font-bold text-blue-300 font-poppins">Delivery Planning</h4>
-                            <p class="text-blue-200 font-inter text-sm mt-1">Weather conditions may affect delivery times. Monitor severe weather alerts for operational adjustments.</p>
+                            <h3 class="text-lg font-semibold text-gray-900 capitalize">@currentWeather.Description</h3>
+                            <p class="text-gray-600">Current conditions in @currentWeather.City</p>
+                        </div>
+                        <div class="text-right text-sm text-gray-600">
+                            <p>🌅 Sunrise: @currentWeather.Sunrise.ToString("HH:mm")</p>
+                            <p>🌇 Sunset: @currentWeather.Sunset.ToString("HH:mm")</p>
                         </div>
                     </div>
                 </div>
-}
-        </div>
+            </div>
+
+            @if (forecastData?.Any() == true)
+            {
+                <!-- 5-Day Forecast -->
+                <div class="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-gray-200/50">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-6">5-Day Forecast</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        @foreach (var forecast in forecastData.Where(f => f.DateTime.Hour == 12).Take(5))
+                        {
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 text-center hover:shadow-lg transition-shadow">
+                                <div class="text-lg font-semibold text-gray-900 mb-2">
+                                    @forecast.DateTime.ToString("ddd")
+                                </div>
+                                <div class="text-sm text-gray-600 mb-3">
+                                    @forecast.DateTime.ToString("MMM dd")
+                                </div>
+                                <img src="https://openweathermap.org/img/wn/@(forecast.Icon).png" 
+                                     alt="@forecast.Description" class="w-12 h-12 mx-auto mb-2">
+                                <div class="text-xl font-bold text-blue-600 mb-1">
+                                    @forecast.Temperature°C
+                                </div>
+                                <div class="text-sm text-gray-600 capitalize mb-2">
+                                    @forecast.Description
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    💧 @forecast.Humidity% | 💨 @forecast.WindSpeed.ToString("F1") m/s
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <!-- Error State -->
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl text-center">
+                <h3 class="text-lg font-bold mb-2">Unable to load weather data</h3>
+                <p>Please check your internet connection and try again.</p>
+                <button @onclick="RefreshWeather" 
+                        class="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    Try Again
+                </button>
+            </div>
+        }
     </div>
 </div>
 
 @code {
-    private WeatherForecast[]? forecasts;
+    private WeatherData? currentWeather;
+    private List<ForecastData>? forecastData;
+    private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        // Simulate asynchronous loading to demonstrate streaming rendering
-        await Task.Delay(500);
-
-        var startDate = DateOnly.FromDateTime(DateTime.Now);
-        var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-        forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
-        {
-            Date = startDate.AddDays(index),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = summaries[Random.Shared.Next(summaries.Length)]
-        }).ToArray();
+        await LoadWeatherData();
     }
 
-    private string GetWeatherIcon(string? summary)
+    private async Task LoadWeatherData()
     {
-        return summary?.ToLower() switch
+        isLoading = true;
+        StateHasChanged();
+
+        try
         {
-            var s when s?.Contains("rain") == true => "🌧️",
-            var s when s?.Contains("snow") == true => "❄️",
-            var s when s?.Contains("cloud") == true => "☁️",
-            var s when s?.Contains("sun") == true || s?.Contains("clear") == true => "☀️",
-            var s when s?.Contains("storm") == true => "⛈️",
-            var s when s?.Contains("fog") == true => "🌫️",
-            var s when s?.Contains("wind") == true => "💨",
-            _ => "🌤️"
-        };
+            // Load current weather and forecast in parallel
+            var currentWeatherTask = WeatherService.GetCurrentWeatherAsync();
+            var forecastTask = WeatherService.GetWeatherForecastAsync();
+
+            await Task.WhenAll(currentWeatherTask, forecastTask);
+
+            currentWeather = await currentWeatherTask;
+            forecastData = await forecastTask;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading weather data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
     }
 
-    private string GetWeatherBadgeClass(string? summary)
+    private async Task RefreshWeather()
     {
-        return summary?.ToLower() switch
-        {
-            var s when s?.Contains("rain") == true => "bg-blue-500/20 text-blue-300 border border-blue-500/30",
-            var s when s?.Contains("snow") == true => "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30",
-            var s when s?.Contains("cloud") == true => "bg-gray-500/20 text-gray-300 border border-gray-500/30",
-            var s when s?.Contains("sun") == true || s?.Contains("clear") == true => "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30",
-            var s when s?.Contains("storm") == true => "bg-red-500/20 text-red-300 border border-red-500/30",
-            var s when s?.Contains("fog") == true => "bg-purple-500/20 text-purple-300 border border-purple-500/30",
-            _ => "bg-green-500/20 text-green-300 border border-green-500/30"
-        };
-    }
-
-    private class WeatherForecast
-    {
-        public DateOnly Date { get; set; }
-        public int TemperatureC { get; set; }
-        public string? Summary { get; set; }
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        await LoadWeatherData();
     }
 }

@@ -9,7 +9,8 @@ namespace HidaSushi.Client.Services;
 public interface IApiService
 {
     Task<Order?> TrackOrderAsync(string orderNumber);
-    Task<Order> CreateOrderAsync(Order order);
+    Task<Order?> CreateOrderAsync(Order order);
+    Task<Order?> GetOrderByIdAsync(int orderId);
     Task<List<SushiRoll>> GetMenuAsync();
     Task<List<SushiRoll>> GetSushiRollsAsync();
     Task<List<SushiRoll>> GetSignatureRollsAsync();
@@ -63,16 +64,14 @@ public class ApiService : IApiService
             {
                 _logger.LogError("Failed to track order {OrderNumber}. Status: {StatusCode}", orderNumber, response.StatusCode);
                 
-                // Fallback to mock data for development
-                return await GetMockOrder(orderNumber);
+                return null;
             }
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error tracking order {OrderNumber}", orderNumber);
             
-            // Fallback to mock data when backend is not available
-            return await GetMockOrder(orderNumber);
+            return null;
         }
         catch (Exception ex)
         {
@@ -81,7 +80,7 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<Order> CreateOrderAsync(Order order)
+    public async Task<Order?> CreateOrderAsync(Order order)
     {
         try
         {
@@ -102,21 +101,56 @@ public class ApiService : IApiService
                 var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogError("Failed to create order. Status: {StatusCode}, Error: {Error}", response.StatusCode, errorContent);
                 
-                // Fallback to mock order creation
-                return await GetMockOrderCreation(order);
+                return null;
             }
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Network error creating order");
             
-            // Fallback to mock data when backend is not available
-            return await GetMockOrderCreation(order);
+            return null;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating order");
-            throw;
+            return null; // Changed from throw to return null to be consistent
+        }
+    }
+
+    public async Task<Order?> GetOrderByIdAsync(int orderId)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching order by ID: {OrderId}", orderId);
+            
+            var response = await _httpClient.GetAsync($"/api/Orders/{orderId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var order = await response.Content.ReadFromJsonAsync<Order>();
+                _logger.LogInformation("Successfully fetched order {OrderId}", orderId);
+                return order;
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _logger.LogWarning("Order with ID {OrderId} not found", orderId);
+                return null;
+            }
+            else
+            {
+                _logger.LogError("Failed to fetch order {OrderId}. Status: {StatusCode}", orderId, response.StatusCode);
+                return null;
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error fetching order {OrderId}", orderId);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching order {OrderId}", orderId);
+            return null;
         }
     }
 
@@ -129,18 +163,39 @@ public class ApiService : IApiService
     {
         try
         {
-            _logger.LogInformation("Fetching all sushi rolls");
+            _logger.LogInformation("Fetching all sushi rolls from backend");
             
             var response = await _httpClient.GetAsync("/api/SushiRolls");
-            response.EnsureSuccessStatusCode();
             
+            if (response.IsSuccessStatusCode)
+            {
                 var rolls = await response.Content.ReadFromJsonAsync<List<SushiRoll>>();
-                return rolls ?? new List<SushiRoll>();
+                if (rolls != null)
+                {
+                    _logger.LogInformation("Successfully fetched {Count} sushi rolls from backend", rolls.Count);
+                    return rolls;
+                }
+                else
+                {
+                    _logger.LogWarning("Backend returned null sushi rolls list");
+                    return new List<SushiRoll>();
+                }
+            }
+            else
+            {
+                _logger.LogError("Failed to fetch sushi rolls. Status: {StatusCode}", response.StatusCode);
+                return new List<SushiRoll>();
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error fetching sushi rolls - backend may be unavailable");
+            return new List<SushiRoll>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching sushi rolls");
-            return GetFallbackRolls();
+            return new List<SushiRoll>();
         }
     }
 
@@ -155,18 +210,32 @@ public class ApiService : IApiService
             if (response.IsSuccessStatusCode)
             {
                 var rolls = await response.Content.ReadFromJsonAsync<List<SushiRoll>>();
-                return rolls ?? new List<SushiRoll>();
+                if (rolls != null)
+                {
+                    _logger.LogInformation("Successfully fetched {Count} signature rolls from backend", rolls.Count);
+                    return rolls;
+                }
+                else
+                {
+                    _logger.LogWarning("Backend returned null signature rolls list");
+                    return new List<SushiRoll>();
+                }
             }
             else
             {
-                // Fallback to filtered default rolls
-                return SignatureRolls.DefaultRolls.Where(r => !r.IsVegetarian).ToList();
+                _logger.LogError("Failed to fetch signature rolls. Status: {StatusCode}", response.StatusCode);
+                return new List<SushiRoll>();
             }
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error fetching signature rolls - backend may be unavailable");
+            return new List<SushiRoll>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching signature rolls");
-            return SignatureRolls.DefaultRolls.Where(r => !r.IsVegetarian).ToList();
+            return new List<SushiRoll>();
         }
     }
 
@@ -181,18 +250,32 @@ public class ApiService : IApiService
             if (response.IsSuccessStatusCode)
             {
                 var rolls = await response.Content.ReadFromJsonAsync<List<SushiRoll>>();
-                return rolls ?? new List<SushiRoll>();
+                if (rolls != null)
+                {
+                    _logger.LogInformation("Successfully fetched {Count} vegetarian rolls from backend", rolls.Count);
+                    return rolls;
+                }
+                else
+                {
+                    _logger.LogWarning("Backend returned null vegetarian rolls list");
+                    return new List<SushiRoll>();
+                }
             }
             else
             {
-                // Fallback to filtered default rolls
-                return SignatureRolls.DefaultRolls.Where(r => r.IsVegetarian).ToList();
+                _logger.LogError("Failed to fetch vegetarian rolls. Status: {StatusCode}", response.StatusCode);
+                return new List<SushiRoll>();
             }
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error fetching vegetarian rolls - backend may be unavailable");
+            return new List<SushiRoll>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching vegetarian rolls");
-            return SignatureRolls.DefaultRolls.Where(r => r.IsVegetarian).ToList();
+            return new List<SushiRoll>();
         }
     }
 
@@ -200,13 +283,34 @@ public class ApiService : IApiService
     {
         try
         {
-            _logger.LogInformation("Fetching ingredients");
+            _logger.LogInformation("Fetching ingredients from backend");
             
             var response = await _httpClient.GetAsync("/api/Ingredients");
-            response.EnsureSuccessStatusCode();
             
-            var ingredients = await response.Content.ReadFromJsonAsync<List<Ingredient>>();
-            return ingredients ?? new List<Ingredient>();
+            if (response.IsSuccessStatusCode)
+            {
+                var ingredients = await response.Content.ReadFromJsonAsync<List<Ingredient>>();
+                if (ingredients != null && ingredients.Any())
+                {
+                    _logger.LogInformation("Successfully fetched {Count} ingredients from backend", ingredients.Count);
+                    return ingredients;
+                }
+                else
+                {
+                    _logger.LogWarning("Backend returned empty ingredients list");
+                    return new List<Ingredient>();
+                }
+            }
+            else
+            {
+                _logger.LogError("Failed to fetch ingredients. Status: {StatusCode}", response.StatusCode);
+                return new List<Ingredient>();
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error fetching ingredients - backend may be unavailable");
+            return new List<Ingredient>();
         }
         catch (Exception ex)
         {
@@ -251,21 +355,61 @@ public class ApiService : IApiService
         {
             _logger.LogInformation("Attempting registration for: {Email}", request.Email);
             
-            // For now, simulate registration since we don't have a register endpoint yet
-            await Task.Delay(1000);
-            
-            // TODO: Implement actual registration endpoint in backend
-            return new LoginResponse 
-            { 
-                Success = true, 
-                Message = "Registration successful",
-                Token = "mock_token"
+            // Create customer registration request that matches server model
+            var customerRegistrationRequest = new CustomerRegistrationRequest
+            {
+                FullName = request.FullName,
+                Email = request.Email,
+                Password = request.Password,
+                Phone = request.Phone
             };
+            
+            var json = JsonSerializer.Serialize(customerRegistrationRequest);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            
+            var response = await _httpClient.PostAsync("/api/Customer/register", content);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var registrationResult = await response.Content.ReadFromJsonAsync<CustomerRegistrationResult>();
+                
+                if (registrationResult?.Success == true)
+                {
+                    _logger.LogInformation("Customer registration successful: {Email}", request.Email);
+                    return new LoginResponse 
+                    { 
+                        Success = true, 
+                        Message = "Registration successful! Please log in with your credentials.",
+                        Token = "" // Registration doesn't provide token, user needs to login
+                    };
+                }
+                else
+                {
+                    return new LoginResponse 
+                    { 
+                        Success = false, 
+                        Message = registrationResult?.ErrorMessage ?? "Registration failed"
+                    };
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Registration failed: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                
+                return new LoginResponse 
+                { 
+                    Success = false, 
+                    Message = response.StatusCode == System.Net.HttpStatusCode.Conflict 
+                        ? "Email already registered" 
+                        : "Registration failed"
+                };
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during registration");
-            return new LoginResponse { Success = false, Message = "Registration failed" };
+            return new LoginResponse { Success = false, Message = "Connection error. Please try again." };
         }
     }
 
@@ -336,7 +480,7 @@ public class ApiService : IApiService
             var json = JsonSerializer.Serialize(request);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             
-            var response = await _httpClient.PostAsync("/api/Payment/create-intent", content);
+            var response = await _httpClient.PostAsync("/api/Payment/stripe/create-checkout-session", content);
             
             if (response.IsSuccessStatusCode)
             {
@@ -447,60 +591,6 @@ public class ApiService : IApiService
             _logger.LogError(ex, "Error fetching customer: {Email}", email);
             return null;
         }
-    }
-
-    // Fallback methods for development when backend is not available
-    private async Task<Order> GetMockOrder(string orderNumber)
-    {
-        await Task.Delay(500);
-        
-        return new Order
-        {
-            Id = 1,
-            OrderNumber = orderNumber,
-            CustomerName = "Demo Customer",
-            CustomerEmail = "demo@example.com",
-            CustomerPhone = "+32 470 42 82 90",
-            TotalAmount = 45.50m,
-            Type = OrderType.Delivery,
-            Status = OrderStatus.InPreparation,
-            PaymentMethod = PaymentMethod.Stripe,
-            PaymentStatus = PaymentStatus.Paid,
-            DeliveryAddress = "Brussels, Belgium",
-            Notes = "Extra wasabi please",
-            EstimatedDeliveryTime = DateTime.Now.AddMinutes(30),
-            CreatedAt = DateTime.Now.AddMinutes(-15),
-            Items = new List<OrderItem>
-            {
-                new OrderItem
-                {
-                    Id = 1,
-                    SushiRoll = SignatureRolls.DefaultRolls.First(),
-                    Quantity = 2,
-                    Price = SignatureRolls.DefaultRolls.First().Price * 2
-                }
-            }
-        };
-    }
-
-    private async Task<Order> GetMockOrderCreation(Order order)
-    {
-        await Task.Delay(1000);
-        
-        order.Id = Random.Shared.Next(1000, 9999);
-        order.OrderNumber = $"HS{DateTime.Now:yyyyMMdd}{order.Id}";
-        order.Status = OrderStatus.Received;
-        order.PaymentStatus = PaymentStatus.Pending;
-        order.CreatedAt = DateTime.Now;
-        order.EstimatedDeliveryTime = DateTime.Now.AddMinutes(order.Type == OrderType.Pickup ? 20 : 45);
-        
-        return order;
-    }
-
-    private List<SushiRoll> GetFallbackRolls()
-    {
-        _logger.LogWarning("Falling back to default rolls due to backend error.");
-        return SignatureRolls.DefaultRolls.ToList();
     }
 }
 

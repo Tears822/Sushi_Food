@@ -1,10 +1,13 @@
 @page "/build-roll"
 @using HidaSushi.Shared.Models
 @using HidaSushi.Client.Services
-@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 @inject ICartService CartService
 @inject IToastService ToastService
 @inject ILogger<BuildRoll> Logger
+@inject IApiService ApiService
+@inject NavigationManager Navigation
+@inject ILocalizationService LocalizationService
 @inherits FlowbitePage
 
 <PageTitle>Build Your Own Roll - HIDA SUSHI</PageTitle>
@@ -88,256 +91,117 @@
                         </div>
                     </div>
 
-                    <!-- Step 2: Base -->
-                    <div class="mb-8">
-                        <h2 class="text-2xl lg:text-3xl font-bold mb-6 flex items-center">
-                            <div class="relative mr-4">
-                                <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-all duration-300">
-                                    <span class="text-white font-bold text-lg">2</span>
+                    <!-- Error Message -->
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="mb-8 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
                                 </div>
-                                <div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-md"></div>
-                            </div>
-                            <div>
-                                <span class="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Select Your Base</span>
-                                <p class="text-sm text-gray-600 font-normal mt-1">Choose the foundation rice or alternative</p>
-                            </div>
-                        </h2>
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            @foreach (var ingredient in GetIngredientsByCategory(IngredientCategory.Base))
-                            {
-                                <div @onclick="() => ToggleIngredient(ingredient)" 
-                                     class="relative group border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 transform hover:scale-105 @(IsIngredientSelected(ingredient.Id) ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50 shadow-lg" : "border-gray-200 hover:border-green-300 hover:shadow-md")">
-                                    
-                                    <!-- Selection Tick -->
-                                    @if (IsIngredientSelected(ingredient.Id))
-                                    {
-                                        <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-bounce">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                            </svg>
-                                        </div>
-                                    }
-                                    
-                                    <div class="text-center">
-                                        <div class="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">🍚</div>
-                                        <h4 class="font-semibold text-sm mb-1 text-gray-900">@ingredient.Name</h4>
-                                        <p class="text-xs text-gray-600 mb-2">@ingredient.Description</p>
-                                        @if (ingredient.AdditionalPrice > 0)
-                                        {
-                                            <p class="text-xs text-green-600 font-bold bg-green-100 px-2 py-1 rounded-full">+€@ingredient.AdditionalPrice</p>
-                                        }
-                                    </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700">@errorMessage</p>
                                 </div>
-                            }
+                            </div>
                         </div>
-                    </div>
+                    }
 
-                    <!-- Step 3: Proteins -->
-                    <div class="mb-8">
-                        <h2 class="text-2xl lg:text-3xl font-bold mb-4 flex items-center">
-                            <div class="relative mr-4">
-                                <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-all duration-300">
-                                    <span class="text-white font-bold text-lg">3</span>
-                                </div>
-                                <div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-md"></div>
+                    <!-- Loading State -->
+                    @if (isLoading)
+                    {
+                        <div class="mb-8 text-center py-12">
+                            <div class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl shadow-lg">
+                                <svg class="animate-spin h-6 w-6 text-green-600 mr-3" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="text-green-800 font-medium">Loading ingredients from our kitchen...</span>
                             </div>
-                            <div>
-                                <span class="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Choose Your Proteins</span>
-                                <p class="text-sm text-gray-600 font-normal mt-1">Add premium seafood and proteins</p>
-                            </div>
-                        </h2>
-                        <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-4 mb-6 shadow-lg">
-                            <div class="flex items-center mb-3">
-                                <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center shadow-md mr-3">
-                                    <div class="text-lg">💡</div>
-                                </div>
-                                <span class="font-bold text-blue-800 text-lg">Pro Tip:</span>
-                            </div>
-                            <p class="text-blue-700 font-medium">
-                                Select up to 3 proteins for the perfect balance • 
-                                <span class="font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Selected: @GetSelectedProteins().Count/3</span>
-                            </p>
                         </div>
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            @foreach (var ingredient in GetIngredientsByCategory(IngredientCategory.Protein))
+                    }
+                    else
+                    {
+                        <!-- Ingredient Categories -->
+                        @foreach (var category in Enum.GetValues<IngredientCategory>())
+                        {
+                            var categoryIngredients = GetIngredientsByCategory(category);
+                            @if (categoryIngredients.Any())
                             {
-                                <div @onclick="() => ToggleIngredient(ingredient)" 
-                                     class="relative group border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 transform hover:scale-105 @(IsIngredientSelected(ingredient.Id) ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50 shadow-lg" : GetSelectedProteins().Count >= 3 && !IsIngredientSelected(ingredient.Id) ? "border-gray-200 opacity-50 cursor-not-allowed" : "border-gray-200 hover:border-green-300 hover:shadow-md")">
-                                    
-                                    <!-- Selection Tick -->
-                                    @if (IsIngredientSelected(ingredient.Id))
-                                    {
-                                        <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-bounce">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                            </svg>
+                                <div class="mb-8">
+                                    <h2 class="text-2xl lg:text-3xl font-bold mb-6 flex items-center">
+                                        <div class="relative mr-4">
+                                            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-all duration-300">
+                                                <span class="text-white font-bold text-lg">@((int)category + 2)</span>
+                                            </div>
                                         </div>
-                                    }
+                                        <div>
+                                            <span class="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">@GetCategoryDisplayName(category)</span>
+                                            <p class="text-sm text-gray-600 font-normal mt-1">@GetCategoryDescription(category)</p>
+                                        </div>
+                                    </h2>
                                     
-                                    <div class="text-center">
-                                        <div class="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">@GetIngredientEmoji(ingredient.Name)</div>
-                                        <h4 class="font-semibold text-sm mb-1 text-gray-900">@ingredient.Name</h4>
-                                        <p class="text-xs text-gray-600 mb-2">@ingredient.Description</p>
-                                        
-                                        <div class="flex flex-col space-y-1">
-                                            @if (ingredient.AdditionalPrice > 0)
-                                            {
-                                                <p class="text-xs text-green-600 font-bold bg-green-100 px-2 py-1 rounded-full">+€@ingredient.AdditionalPrice</p>
-                                            }
-                                            @if (ingredient.Allergens.Any())
-                                            {
-                                                <div class="flex flex-wrap gap-1 justify-center">
-                                                    @foreach (var allergen in ingredient.Allergens.Take(2))
-                                                    {
-                                                        <span class="text-xs bg-red-100 text-red-600 px-1 py-0.5 rounded">@allergen</span>
-                                                    }
+                                    @if (category == IngredientCategory.Protein)
+                                    {
+                                        <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-4 mb-6 shadow-lg">
+                                            <div class="flex items-center mb-3">
+                                                <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center shadow-md mr-3">
+                                                    <div class="text-lg">💡</div>
                                                 </div>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-
-                    <!-- Step 4: Vegetables -->
-                    <div class="mb-8">
-                        <h2 class="text-2xl lg:text-3xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent flex items-center">
-                            <span class="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">4</span>
-                            Add Fresh Vegetables
-                        </h2>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            @foreach (var ingredient in GetIngredientsByCategory(IngredientCategory.Vegetable))
-                            {
-                                <div @onclick="() => ToggleIngredient(ingredient)" 
-                                     class="relative group border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 transform hover:scale-105 @(IsIngredientSelected(ingredient.Id) ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50 shadow-lg" : "border-gray-200 hover:border-green-300 hover:shadow-md")">
-                                    
-                                    <!-- Selection Tick -->
-                                    @if (IsIngredientSelected(ingredient.Id))
-                                    {
-                                        <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-bounce">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                            </svg>
+                                                <span class="font-bold text-blue-800 text-lg">Pro Tip:</span>
+                                            </div>
+                                            <p class="text-blue-700 font-medium">
+                                                Select up to 3 proteins for the perfect balance • 
+                                                <span class="font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Selected: @GetSelectedProteins().Count/3</span>
+                                            </p>
                                         </div>
                                     }
                                     
-                                    <div class="text-center">
-                                        <div class="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">@GetIngredientEmoji(ingredient.Name)</div>
-                                        <h4 class="font-semibold text-sm mb-1 text-gray-900">@ingredient.Name</h4>
-                                        <p class="text-xs text-gray-600">@ingredient.Description</p>
+                                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        @foreach (var ingredient in categoryIngredients)
+                                        {
+                                            <div @onclick="() => ToggleIngredient(ingredient)" 
+                                                 class="relative group border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 transform hover:scale-105 @GetIngredientCardClasses(ingredient)">
+                                                
+                                                <!-- Selection Tick -->
+                                                @if (IsIngredientSelected(ingredient.Id))
+                                                {
+                                                    <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-bounce">
+                                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                                        </svg>
+                                                    </div>
+                                                }
+                                                
+                                                <div class="text-center">
+                                                    <div class="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">@GetIngredientEmoji(ingredient.Name)</div>
+                                                    <h4 class="font-semibold text-sm mb-1 text-gray-900">@ingredient.Name</h4>
+                                                    <p class="text-xs text-gray-600 mb-2">@ingredient.Description</p>
+                                                    
+                                                    <div class="flex flex-col space-y-1">
+                                                        @if (ingredient.AdditionalPrice > 0)
+                                                        {
+                                                            <p class="text-xs text-green-600 font-bold bg-green-100 px-2 py-1 rounded-full">+€@ingredient.AdditionalPrice</p>
+                                                        }
+                                                        @if (ingredient.Allergens.Any())
+                                                        {
+                                                            <div class="flex flex-wrap gap-1 justify-center">
+                                                                @foreach (var allergen in ingredient.Allergens.Take(2))
+                                                                {
+                                                                    <span class="text-xs bg-red-100 text-red-600 px-1 py-0.5 rounded">@allergen</span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
                                     </div>
                                 </div>
                             }
-                        </div>
-                    </div>
-
-                    <!-- Step 5: Premium Extras -->
-                    <div class="mb-8">
-                        <h2 class="text-2xl lg:text-3xl font-bold mb-6 bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent flex items-center">
-                            <span class="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">5</span>
-                            Premium Extras
-                        </h2>
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            @foreach (var ingredient in GetIngredientsByCategory(IngredientCategory.Extra))
-                            {
-                                <div @onclick="() => ToggleIngredient(ingredient)" 
-                                     class="relative group border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 transform hover:scale-105 @(IsIngredientSelected(ingredient.Id) ? "border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 shadow-lg" : "border-amber-200 hover:border-amber-400 hover:shadow-md")">
-                                    
-                                    <!-- Selection Tick -->
-                                    @if (IsIngredientSelected(ingredient.Id))
-                                    {
-                                        <div class="absolute -top-2 -right-2 bg-amber-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-bounce">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                            </svg>
-                                        </div>
-                                    }
-                                    
-                                    <div class="text-center">
-                                        <div class="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">@GetIngredientEmoji(ingredient.Name)</div>
-                                        <h4 class="font-semibold text-sm mb-1 text-gray-900">@ingredient.Name</h4>
-                                        <p class="text-xs text-gray-600 mb-2">@ingredient.Description</p>
-                                        @if (ingredient.AdditionalPrice > 0)
-                                        {
-                                            <p class="text-xs text-amber-600 font-bold bg-amber-100 px-2 py-1 rounded-full">+€@ingredient.AdditionalPrice</p>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-
-                    <!-- Step 6 & 7: Toppings & Sauces -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <!-- Toppings -->
-                        <div>
-                            <h2 class="text-xl lg:text-2xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center">
-                                <span class="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">6</span>
-                                Toppings
-                            </h2>
-                            <div class="space-y-3">
-                                @foreach (var ingredient in GetIngredientsByCategory(IngredientCategory.Topping))
-                                {
-                                    <div @onclick="() => ToggleIngredient(ingredient)" 
-                                         class="relative flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md @(IsIngredientSelected(ingredient.Id) ? "border-purple-500 bg-gradient-to-r from-purple-50 to-pink-50 shadow-lg" : "border-gray-200 hover:border-purple-300")">
-                                        
-                                        <!-- Selection Tick -->
-                                        @if (IsIngredientSelected(ingredient.Id))
-                                        {
-                                            <div class="absolute -top-2 -right-2 bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-bounce">
-                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                                </svg>
-                                            </div>
-                                        }
-                                        
-                                        <span class="text-2xl mr-4">@GetIngredientEmoji(ingredient.Name)</span>
-                                        <div class="flex-1">
-                                            <h4 class="font-semibold text-sm text-gray-900">@ingredient.Name</h4>
-                                            <p class="text-xs text-gray-600">@ingredient.Description</p>
-                                        </div>
-                                        @if (ingredient.AdditionalPrice > 0)
-                                        {
-                                            <span class="text-sm text-purple-600 font-bold bg-purple-100 px-2 py-1 rounded-full">+€@ingredient.AdditionalPrice</span>
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        </div>
-
-                        <!-- Sauces -->
-                        <div>
-                            <h2 class="text-xl lg:text-2xl font-bold mb-6 bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent flex items-center">
-                                <span class="bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">7</span>
-                                Sauces
-                            </h2>
-                            <div class="space-y-3">
-                                @foreach (var ingredient in GetIngredientsByCategory(IngredientCategory.Sauce))
-                                {
-                                    <div @onclick="() => ToggleIngredient(ingredient)" 
-                                         class="relative flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md @(IsIngredientSelected(ingredient.Id) ? "border-red-500 bg-gradient-to-r from-red-50 to-pink-50 shadow-lg" : "border-gray-200 hover:border-red-300")">
-                                        
-                                        <!-- Selection Tick -->
-                                        @if (IsIngredientSelected(ingredient.Id))
-                                        {
-                                            <div class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-bounce">
-                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                                </svg>
-                                            </div>
-                                        }
-                                        
-                                        <span class="text-2xl mr-4">@GetIngredientEmoji(ingredient.Name)</span>
-                                        <div class="flex-1">
-                                            <h4 class="font-semibold text-sm text-gray-900">@ingredient.Name</h4>
-                                            <p class="text-xs text-gray-600">@ingredient.Description</p>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    </div>
+                        }
+                    }
                 </div>
             </div>
 
@@ -448,10 +312,9 @@
                         </a>
                     </div>
 
-                    <!-- Chef's Tips with Modern 3D Design -->
+                    <!-- Chef's Tips -->
                     <div class="mt-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
                         <div class="flex items-center mb-4">
-                            <!-- 3D Chef Icon -->
                             <div class="relative mr-4">
                                 <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-all duration-300">
                                     <div class="text-2xl">👨‍🍳</div>
@@ -491,11 +354,51 @@
 </section>
 
 @code {
-    private RollType selectedRollType = RollType.Normal;
+    private List<Ingredient> availableIngredients = new();
     private List<Ingredient> selectedIngredients = new();
-    private List<Ingredient> availableIngredients = DefaultIngredients.All;
-    private decimal currentPrice = 15m; // Base price
-    private const decimal BASE_PRICE = 15m;
+    private RollType selectedRollType = RollType.Normal;
+    private decimal currentPrice = 15.0m; // Base price for custom roll
+    private bool isLoading = true;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+            
+            Logger.LogInformation("Loading ingredients from backend API");
+            
+            // Load ingredients from backend
+            availableIngredients = await ApiService.GetIngredientsAsync();
+            
+            if (availableIngredients == null || !availableIngredients.Any())
+            {
+                Logger.LogWarning("No ingredients received from API, falling back to default ingredients");
+                // Only fall back to defaults if API returns no data
+                availableIngredients = DefaultIngredients.All;
+                errorMessage = "Could not load ingredients from server. Using default ingredients.";
+            }
+            else
+            {
+                Logger.LogInformation("Successfully loaded {Count} ingredients from backend", availableIngredients.Count);
+            }
+            
+            CalculatePrice();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading ingredients from backend");
+            availableIngredients = DefaultIngredients.All;
+            errorMessage = "Failed to connect to server. Using default ingredients.";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
 
     private void SelectRollType(RollType rollType)
     {
@@ -567,13 +470,13 @@
     {
         try
         {
-            currentPrice = BASE_PRICE + selectedIngredients.Sum(i => i.AdditionalPrice);
+            currentPrice = 15m + selectedIngredients.Sum(i => i.AdditionalPrice); // Base price is 15, then add additional
             Logger.LogDebug("Calculated price: €{Price} with {IngredientCount} ingredients", currentPrice, selectedIngredients.Count);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error calculating price");
-            currentPrice = BASE_PRICE; // Fallback to base price
+            currentPrice = 15m; // Fallback to base price
         }
     }
 
@@ -622,7 +525,6 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error adding custom roll to cart");
-            // Could show an error message to user here
         }
     }
 
@@ -658,6 +560,47 @@
         RollType.CucumberWrap => "Wrapped in cucumber",
         _ => ""
     };
+
+    private string GetCategoryDisplayName(IngredientCategory category) => category switch
+    {
+        IngredientCategory.Base => "Select Your Base",
+        IngredientCategory.Protein => "Choose Your Proteins",
+        IngredientCategory.Vegetable => "Add Fresh Vegetables",
+        IngredientCategory.Extra => "Premium Extras",
+        IngredientCategory.Topping => "Toppings",
+        IngredientCategory.Sauce => "Sauces",
+        IngredientCategory.Wrapper => "Wrapper",
+        _ => category.ToString()
+    };
+
+    private string GetCategoryDescription(IngredientCategory category) => category switch
+    {
+        IngredientCategory.Base => "Choose the foundation rice or alternative",
+        IngredientCategory.Protein => "Add premium seafood and proteins",
+        IngredientCategory.Vegetable => "Fresh and crispy vegetables",
+        IngredientCategory.Extra => "Premium ingredients for extra flavor",
+        IngredientCategory.Topping => "Crunchy and flavorful toppings",
+        IngredientCategory.Sauce => "Delicious sauces and condiments",
+        IngredientCategory.Wrapper => "Outer wrapping options",
+        _ => ""
+    };
+
+    private string GetIngredientCardClasses(Ingredient ingredient)
+    {
+        var baseClasses = "border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 transform hover:scale-105";
+        
+        if (IsIngredientSelected(ingredient.Id))
+        {
+            return $"{baseClasses} border-green-500 bg-gradient-to-br from-green-50 to-blue-50 shadow-lg";
+        }
+        
+        if (ingredient.Category == IngredientCategory.Protein && GetSelectedProteins().Count >= 3 && !IsIngredientSelected(ingredient.Id))
+        {
+            return $"{baseClasses} border-gray-200 opacity-50 cursor-not-allowed";
+        }
+        
+        return $"{baseClasses} border-gray-200 hover:border-green-300 hover:shadow-md";
+    }
 
     private string GetIngredientEmoji(string name) => name switch
     {

@@ -1,417 +1,396 @@
+using HidaSushi.Shared.Models;
+using Microsoft.Extensions.Configuration;
 using System.Text;
 using System.Text.Json;
-using HidaSushi.Shared.Models;
-using Microsoft.AspNetCore.Authentication;
 
 namespace HidaSushi.Admin.Services;
 
-public class AdminApiService
+public interface IAdminApiService
+{
+    Task<DashboardStats> GetDashboardStatsAsync();
+    Task<List<Order>> GetOrdersAsync();
+    Task<List<Ingredient>> GetIngredientsAsync();
+    Task<List<SushiRoll>> GetMenuItemsAsync();
+    Task<bool> SaveMenuItemAsync(SushiRoll roll);
+    Task<bool> DeleteMenuItemAsync(int id);
+    Task<bool> SaveIngredientAsync(Ingredient ingredient);
+    Task<bool> DeleteIngredientAsync(int id);
+    Task<DailyAnalytics?> GetDailyAnalyticsAsync(DateTime date);
+    Task<Order?> GetOrderByIdAsync(int id);
+    Task<bool> ToggleSushiRollAvailabilityAsync(int id);
+    Task<bool> ToggleIngredientAvailabilityAsync(int id);
+    Task<bool> UpdateOrderStatusAsync(int orderId, string newStatus);
+    
+    // File upload methods
+    Task<FileUploadResult?> UploadMenuImageAsync(Stream fileStream, string fileName, string menuItemName, int? menuItemId = null);
+    Task<FileUploadResult?> UploadIngredientImageAsync(Stream fileStream, string fileName, string ingredientName, int? ingredientId = null);
+    Task<bool> DeleteImageAsync(string imageUrl);
+    
+    // Legacy methods for compatibility
+    Task<List<SushiRoll>> GetSushiRollsAsync();
+    Task<bool> SaveSushiRollAsync(SushiRoll roll);
+    Task<bool> DeleteSushiRollAsync(int id);
+    
+    void SetAuthToken(string token);
+}
+
+public class AdminApiService : IAdminApiService
 {
     private readonly HttpClient _httpClient;
-    private readonly CustomAuthenticationStateProvider _authStateProvider;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<AdminApiService> _logger;
+    private string? _authToken;
 
-    public AdminApiService(IHttpClientFactory httpClientFactory, CustomAuthenticationStateProvider authStateProvider, IHttpContextAccessor httpContextAccessor)
+    public AdminApiService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<AdminApiService> logger)
     {
         _httpClient = httpClientFactory.CreateClient("AdminApi");
-        _authStateProvider = authStateProvider;
-        _httpContextAccessor = httpContextAccessor;
-    }
-
-    private async Task EnsureTokenRestoredAsync()
-    {
-        // Always check and restore token for each API call - remove the _tokenRestored flag
-        try
-        {
-            string? token = null;
-            
-            // First try to get token from authentication state provider
-            token = await _authStateProvider.GetTokenAsync();
-            
-            // If that fails, try to get it directly from HttpContext
-            if (string.IsNullOrEmpty(token))
-            {
-                var httpContext = _httpContextAccessor.HttpContext;
-                if (httpContext?.User?.Identity?.IsAuthenticated == true)
-            {
-                    var tokenClaim = httpContext.User.FindFirst("token");
-                    if (tokenClaim != null)
-                    {
-                        token = tokenClaim.Value;
-                        Console.WriteLine($"Token retrieved directly from HttpContext: {token.Substring(0, Math.Min(10, token.Length))}...");
-                    }
-                    else
-                    {
-                        Console.WriteLine("No token claim found in HttpContext.User");
-                    }
-                }
-            }
-            
-            if (!string.IsNullOrEmpty(token))
-                {
-                SetAuthToken(token);
-                Console.WriteLine("Token restored successfully in AdminApiService");
-        }
-            else
-            {
-                Console.WriteLine("No token found in authentication state or HttpContext");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error restoring token: {ex.Message}");
-        }
+        _configuration = configuration;
+        _logger = logger;
     }
 
     public void SetAuthToken(string token)
     {
-        if (string.IsNullOrEmpty(token))
+        _authToken = token;
+        if (!string.IsNullOrEmpty(_authToken))
         {
-            _httpClient.DefaultRequestHeaders.Authorization = null;
-            Console.WriteLine("Authorization header cleared");
+            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _authToken);
         }
-        else
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = 
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            Console.WriteLine($"Authorization header set with token: {token.Substring(0, Math.Min(10, token.Length))}...");
-    }
     }
 
-    // Dashboard methods
-    public async Task<DashboardStats> GetDashboardStatsAsync()
+    private async Task<T?> MakeApiCallAsync<T>(string endpoint, HttpMethod? method = null, object? data = null)
     {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
         try
         {
-            // Optional placeholder; server has daily analytics endpoint
-            var date = DateTime.UtcNow.ToString("yyyy-MM-dd");
-            var response = await _httpClient.GetAsync($"api/analytics/daily/{date}");
-            response.EnsureSuccessStatusCode();
-            var json = await response.Content.ReadAsStringAsync();
-            // Map minimal fields if shape differs
-            return JsonSerializer.Deserialize<DashboardStats>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            }) ?? new DashboardStats();
-        }
-        catch (Exception ex)
-    {
-            Console.WriteLine($"Error getting dashboard stats: {ex.Message}");
-            return new DashboardStats();
-    }
-    }
-
-    // Menu management methods
-    public async Task<List<SushiRoll>> GetSushiRollsAsync()
-    {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
-        try
-        {
-            var response = await _httpClient.GetAsync("api/sushirolls");
-            response.EnsureSuccessStatusCode();
+            var request = new HttpRequestMessage(method ?? HttpMethod.Get, endpoint);
             
-            var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<SushiRoll>>(json, new JsonSerializerOptions
+            if (data != null && method != HttpMethod.Get)
             {
-                PropertyNameCaseInsensitive = true
-            }) ?? new List<SushiRoll>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error getting sushi rolls: {ex.Message}");
-            return new List<SushiRoll>();
-        }
-    }
-
-    public async Task<bool> ToggleSushiRollAvailabilityAsync(int id)
-    {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
-        try
-        {
-            var response = await _httpClient.PatchAsync($"api/sushirolls/{id}/availability", new StringContent("{}", Encoding.UTF8, "application/json"));
-            return response.IsSuccessStatusCode;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error toggling roll availability: {ex.Message}");
-            return false;
-        }
-    }
-
-    public async Task<bool> DeleteSushiRollAsync(int id)
-    {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
-        try
-        {
-            var response = await _httpClient.DeleteAsync($"api/sushirolls/{id}");
-            return response.IsSuccessStatusCode;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error deleting roll: {ex.Message}");
-            return false;
-        }
-    }
-
-    public async Task<SushiRoll?> SaveSushiRollAsync(SushiRoll roll)
-    {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
-        try
-        {
-            HttpResponseMessage response;
-            var payload = new StringContent(JsonSerializer.Serialize(roll), Encoding.UTF8, "application/json");
-            if (roll.Id <= 0)
-            {
-                // POST for new items - should return the created item
-                response = await _httpClient.PostAsync("api/sushirolls", payload);
-                response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<SushiRoll>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (data is MultipartFormDataContent multipartContent)
+                {
+                    request.Content = multipartContent;
+                    _logger.LogInformation("Making {Method} request to {Endpoint} with multipart form data", method, endpoint);
+                }
+                else
+                {
+                    var json = JsonSerializer.Serialize(data);
+                    request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                    _logger.LogInformation("Making {Method} request to {Endpoint} with data: {Data}", method, endpoint, json);
+                }
             }
             else
             {
-                // PUT for updates - returns 204 No Content, so just return the original roll if successful
-                response = await _httpClient.PutAsync($"api/sushirolls/{roll.Id}", payload);
-                response.EnsureSuccessStatusCode();
+                _logger.LogInformation("Making {Method} request to {Endpoint}", method ?? HttpMethod.Get, endpoint);
+            }
+
+            var response = await _httpClient.SendAsync(request);
+            
+            _logger.LogInformation("API Response: {StatusCode} for {Endpoint}", response.StatusCode, endpoint);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("API Response Content: {Content}", content);
                 
-                // PUT returns 204 No Content, so return the updated roll object
-                if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
+                if (string.IsNullOrEmpty(content))
                 {
-                    Console.WriteLine("Roll updated successfully (204 No Content)");
-                    return roll; // Return the roll that was sent, as the update was successful
+                    return default(T);
                 }
                 
-                // Fallback: try to parse response if it has content
-                var json = await response.Content.ReadAsStringAsync();
-                if (!string.IsNullOrEmpty(json))
+                return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions
                 {
-                    return JsonSerializer.Deserialize<SushiRoll>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                }
-                
-                return roll; // Return the updated roll
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("API call failed: {Endpoint} - Status: {StatusCode}, Content: {ErrorContent}", endpoint, response.StatusCode, errorContent);
+                return default;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving roll: {ex.Message}");
-            return null;
+            _logger.LogError(ex, "Error making API call to {Endpoint}", endpoint);
+            return default;
         }
     }
 
-    // Order methods
-    public async Task<List<Order>> GetOrdersAsync()
+    // Add a separate method for operations that return success/failure
+    private async Task<bool> MakeApiCallForSuccessAsync(string endpoint, HttpMethod? method = null, object? data = null)
     {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
         try
         {
-            var response = await _httpClient.GetAsync("api/orders");
-            response.EnsureSuccessStatusCode();
+            var request = new HttpRequestMessage(method ?? HttpMethod.Get, endpoint);
             
-            var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<Order>>(json, new JsonSerializerOptions
+            if (data != null && method != HttpMethod.Get)
             {
-                PropertyNameCaseInsensitive = true
-            }) ?? new List<Order>();
+                var json = JsonSerializer.Serialize(data);
+                request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                _logger.LogInformation("Making {Method} request to {Endpoint} with data: {Data}", method, endpoint, json);
+            }
+            else
+            {
+                _logger.LogInformation("Making {Method} request to {Endpoint}", method ?? HttpMethod.Get, endpoint);
+            }
+
+            var response = await _httpClient.SendAsync(request);
+            
+            _logger.LogInformation("API Response: {StatusCode} for {Endpoint}", response.StatusCode, endpoint);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("API Response Content: {Content}", content);
+                return true;
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("API call failed: {Endpoint} - Status: {StatusCode}, Content: {ErrorContent}", endpoint, response.StatusCode, errorContent);
+                return false;
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error getting orders: {ex.Message}");
-            return new List<Order>();
+            _logger.LogError(ex, "Error making API call to {Endpoint}", endpoint);
+            return false;
         }
+    }
+
+    public async Task<DashboardStats> GetDashboardStatsAsync()
+    {
+        return await MakeApiCallAsync<DashboardStats>("api/analytics/dashboard") ?? new DashboardStats();
+    }
+
+    public async Task<List<Order>> GetOrdersAsync()
+    {
+        var orders = await MakeApiCallAsync<List<Order>>("api/orders");
+        return orders ?? new List<Order>();
     }
 
     public async Task<List<Ingredient>> GetIngredientsAsync()
     {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
-        try
-        {
-            // For admin management, we need ALL ingredients, not just available ones
-            // Backend /api/ingredients only returns available, so we need to create admin endpoint
-            var response = await _httpClient.GetAsync("api/ingredients/all");
-            if (!response.IsSuccessStatusCode)
-            {
-                // Fallback to regular endpoint if /all doesn't exist
-                response = await _httpClient.GetAsync("api/ingredients");
-            }
-            response.EnsureSuccessStatusCode();
-
-            var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<Ingredient>>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            }) ?? new List<Ingredient>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error getting ingredients: {ex.Message}");
-            return new List<Ingredient>();
-    }
+        var ingredients = await MakeApiCallAsync<List<Ingredient>>("api/ingredients");
+        return ingredients ?? new List<Ingredient>();
     }
 
-    // Order Management Methods
-    public async Task<Order?> GetOrderByIdAsync(int id)
+    public async Task<List<SushiRoll>> GetMenuItemsAsync()
     {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
+        var menuItems = await MakeApiCallAsync<List<SushiRoll>>("api/sushis");
+        return menuItems ?? new List<SushiRoll>();
+    }
+
+    public async Task<bool> SaveMenuItemAsync(SushiRoll roll)
+    {
         try
         {
-            var response = await _httpClient.GetAsync($"api/orders/{id}");
-            response.EnsureSuccessStatusCode();
+            var endpoint = roll.Id > 0 ? $"api/sushis/{roll.Id}" : "api/sushis";
+            var method = roll.Id > 0 ? HttpMethod.Put : HttpMethod.Post;
             
-            var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<Order>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            _logger.LogInformation("Saving menu item: {RollName} using {Method} to {Endpoint}", roll.Name, method, endpoint);
+            
+            var result = await MakeApiCallForSuccessAsync(endpoint, method, roll);
+            
+            _logger.LogInformation("Save menu item result: {Success}", result);
+            return result;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error getting order: {ex.Message}");
-            return null;
-        }
-    }
-
-    public async Task<bool> UpdateOrderStatusAsync(int orderId, OrderStatus status)
-    {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
-        try
-        {
-            var payload = new StringContent(JsonSerializer.Serialize(new { Status = status }), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PutAsync($"api/orders/{orderId}/status", payload);
-            return response.IsSuccessStatusCode;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error updating order status: {ex.Message}");
+            _logger.LogError(ex, "Error saving menu item");
             return false;
         }
     }
 
-    public async Task<List<Order>> GetPendingOrdersAsync()
+    public async Task<bool> DeleteMenuItemAsync(int id)
     {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
         try
         {
-            var response = await _httpClient.GetAsync("api/orders/pending");
-            response.EnsureSuccessStatusCode();
+            _logger.LogInformation("Deleting menu item with ID: {Id}", id);
             
-            var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<Order>>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            }) ?? new List<Order>();
+            var result = await MakeApiCallForSuccessAsync($"api/sushis/{id}", HttpMethod.Delete);
+            
+            _logger.LogInformation("Delete menu item result: {Success}", result);
+            return result;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error getting pending orders: {ex.Message}");
-            return new List<Order>();
-            }
-        }
-
-    // Analytics Methods
-    public async Task<DailyAnalytics> GetDailyAnalyticsAsync(DateTime date)
-            {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
-        try
-        {
-            var dateStr = date.ToString("yyyy-MM-dd");
-            var response = await _httpClient.GetAsync($"api/analytics/daily/{dateStr}");
-            response.EnsureSuccessStatusCode();
-            
-            var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<DailyAnalytics>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            }) ?? new DailyAnalytics();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error getting daily analytics: {ex.Message}");
-            return new DailyAnalytics();
+            _logger.LogError(ex, "Error deleting menu item");
+            return false;
         }
     }
 
-    public async Task<bool> ToggleIngredientAvailabilityAsync(int id)
+    public async Task<bool> SaveIngredientAsync(Ingredient ingredient)
     {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
         try
         {
-            var response = await _httpClient.PatchAsync($"api/ingredients/{id}/availability", new StringContent("{}", Encoding.UTF8, "application/json"));
-            return response.IsSuccessStatusCode;
+            var endpoint = ingredient.Id > 0 ? $"api/ingredients/{ingredient.Id}" : "api/ingredients";
+            var method = ingredient.Id > 0 ? HttpMethod.Put : HttpMethod.Post;
+            
+            var result = await MakeApiCallForSuccessAsync(endpoint, method, ingredient);
+            return result;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error toggling ingredient availability: {ex.Message}");
+            _logger.LogError(ex, "Error saving ingredient");
             return false;
         }
     }
 
     public async Task<bool> DeleteIngredientAsync(int id)
     {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
         try
         {
-            var response = await _httpClient.DeleteAsync($"api/ingredients/{id}");
-            return response.IsSuccessStatusCode;
+            var result = await MakeApiCallForSuccessAsync($"api/ingredients/{id}", HttpMethod.Delete);
+            return result;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error deleting ingredient: {ex.Message}");
+            _logger.LogError(ex, "Error deleting ingredient");
             return false;
         }
     }
 
-    public async Task<Ingredient?> SaveIngredientAsync(Ingredient ingredient)
+    public async Task<DailyAnalytics?> GetDailyAnalyticsAsync(DateTime date)
     {
-        await EnsureTokenRestoredAsync(); // Ensure token is restored before making API calls
+        var dateStr = date.ToString("yyyy-MM-dd");
+        return await MakeApiCallAsync<DailyAnalytics>($"api/analytics/daily/{dateStr}");
+    }
+
+    public async Task<Order?> GetOrderByIdAsync(int id)
+    {
+        return await MakeApiCallAsync<Order>($"api/orders/{id}");
+    }
+
+    public async Task<bool> ToggleSushiRollAvailabilityAsync(int id)
+    {
         try
         {
-            HttpResponseMessage response;
-            var payload = new StringContent(JsonSerializer.Serialize(ingredient), Encoding.UTF8, "application/json");
-            if (ingredient.Id <= 0)
-            {
-                // POST for new items - should return the created item
-                response = await _httpClient.PostAsync("api/ingredients", payload);
-                response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<Ingredient>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-    }
-            else
-            {
-                // PUT for updates - returns 204 No Content, so just return the original ingredient if successful
-                response = await _httpClient.PutAsync($"api/ingredients/{ingredient.Id}", payload);
-                response.EnsureSuccessStatusCode();
-                
-                // PUT returns 204 No Content, so return the updated ingredient object
-                if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
-                {
-                    Console.WriteLine("Ingredient updated successfully (204 No Content)");
-                    return ingredient; // Return the ingredient that was sent, as the update was successful
-                }
-                
-                // Fallback: try to parse response if it has content
-                var json = await response.Content.ReadAsStringAsync();
-                if (!string.IsNullOrEmpty(json))
-    {
-                    return JsonSerializer.Deserialize<Ingredient>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                }
-                
-                return ingredient; // Return the updated ingredient
-            }
-            }
+            _logger.LogInformation("Toggling sushi roll availability for ID: {Id}", id);
+            
+            var result = await MakeApiCallForSuccessAsync($"api/sushis/{id}/toggle-availability", HttpMethod.Put);
+            
+            _logger.LogInformation("Toggle availability result: {Success}", result);
+            return result;
+        }
         catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling sushi roll availability");
+            return false;
+        }
+    }
+
+    public async Task<bool> ToggleIngredientAvailabilityAsync(int id)
     {
-            Console.WriteLine($"Error saving ingredient: {ex.Message}");
+        try
+        {
+            var result = await MakeApiCallForSuccessAsync($"api/ingredients/{id}/toggle-availability", HttpMethod.Put);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling ingredient availability");
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateOrderStatusAsync(int orderId, string newStatus)
+    {
+        try
+        {
+            var result = await MakeApiCallForSuccessAsync($"api/orders/{orderId}/status", HttpMethod.Put, new { newStatus });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating order status");
+            return false;
+        }
+    }
+
+    // File upload methods
+    public async Task<FileUploadResult?> UploadMenuImageAsync(Stream fileStream, string fileName, string menuItemName, int? menuItemId = null)
+    {
+        try
+        {
+            var endpoint = "api/FileUpload/menu";
+            using var formDataContent = new MultipartFormDataContent();
+            formDataContent.Add(new StreamContent(fileStream), "File", fileName);
+            formDataContent.Add(new StringContent(menuItemName), "MenuItemName");
+            
+            if (menuItemId.HasValue)
+            {
+                formDataContent.Add(new StringContent(menuItemId.Value.ToString()), "MenuItemId");
+            }
+
+            _logger.LogInformation("Uploading menu image for menu item: {MenuItemName} (ID: {MenuItemId})", menuItemName, menuItemId);
+            var result = await MakeApiCallAsync<FileUploadResult>(endpoint, HttpMethod.Post, formDataContent);
+            _logger.LogInformation("Upload menu image result: {Success}", result?.Success);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading menu image");
             return null;
         }
     }
-}
 
-// Data models
-public class DashboardStats
-{
-    public int TotalOrders { get; set; }
-    public decimal TodayRevenue { get; set; }
-    public int TotalMenuItems { get; set; }
-    public int PendingOrders { get; set; }
+    public async Task<FileUploadResult?> UploadIngredientImageAsync(Stream fileStream, string fileName, string ingredientName, int? ingredientId = null)
+    {
+        try
+        {
+            var endpoint = "api/FileUpload/ingredient";
+            using var formDataContent = new MultipartFormDataContent();
+            formDataContent.Add(new StreamContent(fileStream), "File", fileName);
+            formDataContent.Add(new StringContent(ingredientName), "IngredientName");
+            
+            if (ingredientId.HasValue)
+            {
+                formDataContent.Add(new StringContent(ingredientId.Value.ToString()), "IngredientId");
+            }
+
+            _logger.LogInformation("Uploading ingredient image for ingredient: {IngredientName} (ID: {IngredientId})", ingredientName, ingredientId);
+            var result = await MakeApiCallAsync<FileUploadResult>(endpoint, HttpMethod.Post, formDataContent);
+            _logger.LogInformation("Upload ingredient image result: {Success}", result?.Success);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading ingredient image");
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteImageAsync(string imageUrl)
+    {
+        try
+        {
+            var endpoint = $"api/FileUpload?imageUrl={Uri.EscapeDataString(imageUrl)}";
+
+            _logger.LogInformation("Deleting image: {ImageUrl}", imageUrl);
+            var result = await MakeApiCallForSuccessAsync(endpoint, HttpMethod.Delete);
+            _logger.LogInformation("Delete image result: {Success}", result);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting image");
+            return false;
+        }
+    }
+
+    // Legacy methods for compatibility
+    public async Task<List<SushiRoll>> GetSushiRollsAsync()
+    {
+        return await GetMenuItemsAsync();
+    }
+
+    public async Task<bool> SaveSushiRollAsync(SushiRoll roll)
+    {
+        return await SaveMenuItemAsync(roll);
+    }
+
+    public async Task<bool> DeleteSushiRollAsync(int id)
+    {
+        return await DeleteMenuItemAsync(id);
+    }
 } 

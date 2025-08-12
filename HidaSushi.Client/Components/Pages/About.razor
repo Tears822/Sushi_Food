@@ -208,12 +208,18 @@
     protected override void OnInitialized()
     {
         // Subscribe to language changes to refresh the component
-        LocalizationService.OnLanguageChanged += StateHasChanged;
+        LocalizationService.OnLanguageChanged += OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged()
+    {
+        // Force re-render when language changes
+        InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
         // Unsubscribe from language changes
-        LocalizationService.OnLanguageChanged -= StateHasChanged;
+        LocalizationService.OnLanguageChanged -= OnLanguageChanged;
     }
 } 

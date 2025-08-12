@@ -2,8 +2,9 @@
 @attribute [Authorize]
 @using Microsoft.AspNetCore.Authorization
 @using HidaSushi.Admin.Services
-@inject AdminApiService AdminApiService
+@inject IAdminApiService AdminApiService
 @inject NavigationManager Navigation
+@inject CustomAuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Analytics Dashboard - HIDA SUSHI</PageTitle>
 
@@ -217,6 +218,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // First, ensure the AdminApiService has the JWT token
+        await EnsureAuthTokenIsSet();
         await LoadAnalyticsData();
     }
 
@@ -225,7 +228,8 @@
         try
         {
             // Get real analytics data from backend
-            dailyAnalytics = await AdminApiService.GetDailyAnalyticsAsync(DateTime.Today);
+            var apiResult = await AdminApiService.GetDailyAnalyticsAsync(DateTime.Today);
+            dailyAnalytics = apiResult ?? new DailyAnalytics();
             
             // Map to dashboard stats for compatibility
             stats = new DashboardStats
@@ -258,6 +262,27 @@
         finally
         {
             StateHasChanged();
+        }
+    }
+
+    private async Task EnsureAuthTokenIsSet()
+    {
+        try
+        {
+            var token = await AuthStateProvider.GetTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+            {
+                Console.WriteLine($"Setting auth token on AdminApiService (Analytics): {token.Substring(0, Math.Min(10, token.Length))}...");
+                AdminApiService.SetAuthToken(token);
+            }
+            else
+            {
+                Console.WriteLine("No auth token found in authentication state");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error ensuring auth token is set: {ex.Message}");
         }
     }
 

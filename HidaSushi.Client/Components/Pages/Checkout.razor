@@ -250,8 +250,8 @@
                             </h2>
                             
                             <!-- Payment Method Selection -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                <div @onclick="() => SelectPaymentMethod(PaymentMethod.Stripe)" 
+                            <div class="grid grid-cols-1 gap-4 mb-6">
+                                <div @onclick="() => SelectPaymentMethod(PaymentMethod.Stripe)"
                                      class="group relative border-2 rounded-2xl p-6 cursor-pointer transition-all duration-300 @(paymentMethod == PaymentMethod.Stripe ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50" : "border-gray-200 hover:border-green-300 bg-white")">
                                     
                                     @if (paymentMethod == PaymentMethod.Stripe)
@@ -272,7 +272,28 @@
                                     </div>
                                 </div>
 
-                                <div @onclick="() => SelectPaymentMethod(PaymentMethod.CashOnDelivery)" 
+                                <div @onclick="() => SelectPaymentMethod(PaymentMethod.PayPal)"
+                                     class="group relative border-2 rounded-2xl p-6 cursor-pointer transition-all duration-300 @(paymentMethod == PaymentMethod.PayPal ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50" : "border-gray-200 hover:border-green-300 bg-white")">
+                                    
+                                    @if (paymentMethod == PaymentMethod.PayPal)
+                                    {
+                                        <div class="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                                            ✓
+                                        </div>
+                                    }
+                                    
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center text-white">
+                                            🅿️
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-gray-900">PayPal</h3>
+                                            <p class="text-sm text-gray-600">Pay with your PayPal account</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div @onclick="() => SelectPaymentMethod(PaymentMethod.CashOnDelivery)"
                                      class="group relative border-2 rounded-2xl p-6 cursor-pointer transition-all duration-300 @(paymentMethod == PaymentMethod.CashOnDelivery ? "border-green-500 bg-gradient-to-br from-green-50 to-blue-50" : "border-gray-200 hover:border-green-300 bg-white")">
                                     
                                     @if (paymentMethod == PaymentMethod.CashOnDelivery)
@@ -339,6 +360,25 @@
                                         </svg>
                                         <span>Your payment information is secure and encrypted</span>
                                     </div>
+                                </div>
+                            }
+
+                            <!-- PayPal Payment Section -->
+                            @if (paymentMethod == PaymentMethod.PayPal)
+                            {
+                                <div class="bg-gray-50 rounded-2xl p-6 mb-6">
+                                    <h4 class="font-semibold text-gray-900 mb-4">PayPal Payment</h4>
+                                    <p class="text-sm text-gray-600 mb-4">You will be redirected to PayPal to complete your payment securely.</p>
+                                    
+                                    @if (showPayPalButtons)
+                                    {
+                                        <PayPalButtons Amount="GetTotal()" 
+                                                      OrderId="0" 
+                                                      CustomerEmail="@customerEmail"
+                                                      OnPaymentSuccess="HandlePayPalSuccess"
+                                                      OnPaymentError="HandlePayPalError"
+                                                      OnPaymentCancel="HandlePayPalCancel" />
+                                    }
                                 </div>
                             }
                             
@@ -476,6 +516,9 @@
     private string cvv = "";
     private string cardholderName = "";
 
+    // PayPal related fields
+    private bool showPayPalButtons = false;
+
     protected override void OnInitialized()
     {
         cartItems = CartService.GetCartItems();
@@ -502,6 +545,7 @@
     private void SelectPaymentMethod(PaymentMethod method)
     {
         paymentMethod = method;
+        showPayPalButtons = method == PaymentMethod.PayPal;
         StateHasChanged();
     }
 
@@ -546,22 +590,39 @@
 
     private bool IsStep3Valid()
     {
+        if (string.IsNullOrWhiteSpace(customerName) || 
+            string.IsNullOrWhiteSpace(customerEmail) || 
+            string.IsNullOrWhiteSpace(customerPhone))
+            return false;
+
+        if (orderType == OrderType.Delivery && 
+            (string.IsNullOrWhiteSpace(deliveryAddress) || 
+             string.IsNullOrWhiteSpace(city) || 
+             string.IsNullOrWhiteSpace(postalCode) || 
+             string.IsNullOrWhiteSpace(country)))
+            return false;
+
         if (paymentMethod == PaymentMethod.Stripe)
         {
-            return !string.IsNullOrWhiteSpace(cardNumber) &&
-                   !string.IsNullOrWhiteSpace(expiryDate) &&
-                   !string.IsNullOrWhiteSpace(cvv) &&
-                   !string.IsNullOrWhiteSpace(cardholderName) &&
-                   cardNumber.Replace(" ", "").Length >= 13 &&
-                   cvv.Length >= 3;
+            return !string.IsNullOrWhiteSpace(cardNumber) && 
+                   !string.IsNullOrWhiteSpace(expiryDate) && 
+                   !string.IsNullOrWhiteSpace(cvv) && 
+                   !string.IsNullOrWhiteSpace(cardholderName);
         }
 
-        return paymentMethod == PaymentMethod.CashOnDelivery;
+        return paymentMethod == PaymentMethod.CashOnDelivery || paymentMethod == PaymentMethod.PayPal;
     }
 
     private async Task PlaceOrder()
     {
         if (!IsStep3Valid() || isProcessingOrder) return;
+
+        // PayPal payments are handled via the PayPal buttons component
+        if (paymentMethod == PaymentMethod.PayPal)
+        {
+            ToastService.ShowInfo("Payment", "Please use the PayPal button above to complete your payment");
+            return;
+        }
 
         try
         {
@@ -608,7 +669,7 @@
         
                 // Create order first
                 var createdOrder = await ApiService.CreateOrderAsync(order);
-                if (createdOrder != null)
+                if (createdOrder?.Id > 0)
                 {
                     paymentRequest.OrderId = createdOrder.Id;
                     
@@ -617,60 +678,79 @@
                     
                     if (paymentResult?.Success == true)
                     {
-                        await CompleteOrder(createdOrder);
+                        // Success
+                        CartService.ClearCart();
+                        ToastService.ShowSuccess("Success", "Order placed successfully!");
+                        Navigation.NavigateTo($"/order-confirmation/{createdOrder.Id}");
                     }
                     else
                     {
-                        ToastService.ShowError($"Payment failed: {paymentResult?.ErrorMessage ?? "Unknown error"}", "Payment Error");
-                        isProcessingOrder = false;
-                        StateHasChanged();
-                        return;
+                        ToastService.ShowError("Payment Error", paymentResult?.ErrorMessage ?? "Payment failed");
                     }
                 }
                 else
                 {
-                    ToastService.ShowError("Failed to create order", "Order Error");
-                    isProcessingOrder = false;
-                    StateHasChanged();
-                    return;
+                    ToastService.ShowError("Order Error", "Failed to create order");
                 }
             }
-            else
+            else if (paymentMethod == PaymentMethod.CashOnDelivery)
             {
-                // Cash payment - just create the order
+                // For cash on delivery, just create the order
                 var createdOrder = await ApiService.CreateOrderAsync(order);
-                if (createdOrder != null)
+                
+                if (createdOrder?.Id > 0)
                 {
-                    await CompleteOrder(createdOrder);
+                    // Process payment (just for recording)
+                    var paymentRequest = new PaymentRequest
+                    {
+                        OrderId = createdOrder.Id,
+                        PaymentMethod = PaymentMethod.CashOnDelivery,
+                        Amount = GetTotal(),
+                        CustomerEmail = customerEmail
+                    };
+                    
+                    var paymentResult = await ApiService.ProcessPaymentAsync(paymentRequest);
+                    
+                    if (paymentResult?.Success == true)
+                    {
+                        CartService.ClearCart();
+                        ToastService.ShowSuccess("Success", "Order placed successfully!");
+                        Navigation.NavigateTo($"/order-confirmation/{createdOrder.Id}");
+                    }
+                    else
+                    {
+                        ToastService.ShowError("Payment Error", "Order created but payment recording failed");
+                    }
                 }
                 else
                 {
-                    ToastService.ShowError("Failed to create order", "Order Error");
-                    isProcessingOrder = false;
-                    StateHasChanged();
-                    return;
+                    ToastService.ShowError("Order Error", "Failed to create order");
                 }
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error placing order");
-            ToastService.ShowError("An error occurred while placing your order. Please try again.", "Order Error");
+            ToastService.ShowError("Error", $"Error: {ex.Message}");
+        }
+        finally
+        {
             isProcessingOrder = false;
             StateHasChanged();
         }
     }
 
-    private async Task CompleteOrder(Order createdOrder)
+    private Task CompleteOrder(Order createdOrder)
     {
         // Clear cart
         CartService.ClearCart();
         
         // Show success message
-        ToastService.ShowSuccess("Order placed successfully!", "Success");
+        ToastService.ShowSuccess("Success", "Order placed successfully!");
         
         // Redirect to order confirmation/tracking
         Navigation.NavigateTo($"/track-order?orderNumber={createdOrder.OrderNumber}");
+        
+        return Task.CompletedTask;
     }
 
     // Helper methods for formatting
@@ -717,4 +797,107 @@
     // Helper methods
     private string GetItemName(CartItem item) => item.SushiRoll?.Name ?? item.CustomRoll?.Name ?? item.Name;
     private string GetItemImageUrl(CartItem item) => "/images/rolls/default-roll.jpg"; // Would map to actual images
+
+    // PayPal event handlers
+    private async Task HandlePayPalSuccess(PayPalCaptureResponse captureResult)
+    {
+        try
+        {
+            ToastService.ShowSuccess("Success", "PayPal payment completed successfully!");
+            
+            // Create order after successful payment
+            await CompleteOrderAfterPayment("paypal_" + captureResult.Id);
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Error", $"Error completing order: {ex.Message}");
+        }
+    }
+
+    private Task HandlePayPalError(string errorMessage)
+    {
+        ToastService.ShowError("PayPal Error", $"PayPal payment failed: {errorMessage}");
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePayPalCancel()
+    {
+        ToastService.ShowInfo("Payment", "PayPal payment was cancelled");
+        return Task.CompletedTask;
+    }
+
+    private async Task CompleteOrderAfterPayment(string transactionId)
+    {
+        try
+        {
+            isProcessingOrder = true;
+            StateHasChanged();
+
+            // Create order object
+            var order = new Order
+            {
+                CustomerName = customerName,
+                CustomerEmail = customerEmail,
+                CustomerPhone = customerPhone,
+                Type = orderType ?? OrderType.Pickup,
+                DeliveryAddress = orderType == OrderType.Delivery ? $"{deliveryAddress}, {city}, {postalCode}, {country}" : "",
+                PaymentMethod = paymentMethod,
+                SubtotalAmount = GetSubtotal(),
+                DeliveryFee = orderType == OrderType.Delivery ? 3.50m : 0m,
+                TaxAmount = GetTax(),
+                TotalAmount = GetTotal(),
+                Notes = orderNotes,
+                Items = cartItems.Select(item => new OrderItem
+                {
+                    SushiRollId = item.SushiRoll?.Id,
+                    CustomRollId = item.CustomRoll?.Id,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    Price = item.TotalPrice,
+                    SpecialInstructions = item.Name
+                }).ToList()
+            };
+
+            // Create order
+            var createdOrder = await ApiService.CreateOrderAsync(order);
+            if (createdOrder?.Id > 0)
+            {
+                // Update payment status
+                var paymentRequest = new PaymentRequest
+                {
+                    OrderId = createdOrder.Id,
+                    PaymentMethod = paymentMethod,
+                    Amount = GetTotal(),
+                    PaymentToken = transactionId,
+                    CustomerEmail = customerEmail
+                };
+
+                var paymentResult = await ApiService.ProcessPaymentAsync(paymentRequest);
+                if (paymentResult?.Success == true)
+                {
+                    // Clear cart and redirect
+                    CartService.ClearCart();
+                    ToastService.ShowSuccess("Success", "Order placed successfully!");
+                    Navigation.NavigateTo($"/order-confirmation/{createdOrder.Id}");
+                }
+                else
+                {
+                    ToastService.ShowError("Payment Error", "Payment processing failed");
+                }
+            }
+            else
+            {
+                ToastService.ShowError("Order Error", "Failed to create order");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isProcessingOrder = false;
+            StateHasChanged();
+        }
+    }
 } 

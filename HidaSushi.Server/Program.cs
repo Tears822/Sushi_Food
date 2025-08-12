@@ -2,22 +2,30 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json.Serialization;
 using HidaSushi.Server.Data;
 using HidaSushi.Server.Services;
 using HidaSushi.Server.Hubs;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers();
+// Add services to the container with JSON configuration for circular references
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure Database with optimizations
+// Configure Database with enhanced performance settings
 builder.Services.AddDbContext<HidaSushiDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -30,40 +38,33 @@ builder.Services.AddDbContext<HidaSushiDbContext>(options =>
             maxRetryDelay: TimeSpan.FromSeconds(30),
             errorNumbersToAdd: null);
 
-        // Performance optimizations
+        // Query performance
         sqlOptions.CommandTimeout(builder.Configuration.GetValue<int>("Database:CommandTimeout", 30));
         
-        // Migration assembly
-        sqlOptions.MigrationsAssembly("HidaSushi.Server");
+        // Query splitting for better performance with includes
+        var querySplittingBehavior = builder.Configuration.GetValue<string>("Database:QuerySplittingBehavior", "SplitQuery");
+        if (querySplittingBehavior == "SplitQuery")
+        {
+            sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+        }
     });
 
     // Configure pooling for high performance
     options.EnableSensitiveDataLogging(builder.Configuration.GetValue<bool>("Database:EnableSensitiveDataLogging", false));
     options.EnableDetailedErrors(builder.Configuration.GetValue<bool>("Database:EnableDetailedErrors", false));
     
-    // Query splitting for better performance with includes (only available for SQL Server)
-    var querySplittingBehavior = builder.Configuration.GetValue<string>("Database:QuerySplittingBehavior", "SplitQuery");
-    if (querySplittingBehavior == "SplitQuery")
-    {
-        options.UseSqlServer(connectionString, sqlServerOptions =>
-        {
-            sqlServerOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-        });
-    }
+    // Configure to work with database triggers
+    options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.CommandExecuted));
+    
+    // Use SQL Server specific features
+    options.EnableServiceProviderCaching();
+    options.EnableSensitiveDataLogging(false); // Security best practice
 });
 
-// Memory Caching
-builder.Services.AddMemoryCache(options =>
-{
-    var maxSize = builder.Configuration.GetValue<string>("Caching:InMemory:MaxSize", "100MB");
-    if (maxSize.EndsWith("MB"))
-    {
-        var sizeInMB = int.Parse(maxSize.Replace("MB", ""));
-        options.SizeLimit = sizeInMB * 1024 * 1024; // Convert to bytes
-    }
-});
+// Caching services
+builder.Services.AddMemoryCache();
 
-// Redis Caching (if enabled)
+// Add distributed cache based on configuration
 if (builder.Configuration.GetValue<bool>("Caching:Redis:Enabled", false))
 {
     builder.Services.AddStackExchangeRedisCache(options =>
@@ -72,11 +73,24 @@ if (builder.Configuration.GetValue<bool>("Caching:Redis:Enabled", false))
         options.InstanceName = "HidaSushi";
     });
 }
+else
+{
+    // Use in-memory distributed cache as fallback
+    builder.Services.AddDistributedMemoryCache();
+}
 
-// Register Cache Service
 builder.Services.AddSingleton<ICacheService, CacheService>();
 
-// Health Checks
+// Email service
+builder.Services.AddSingleton<EmailService>();
+
+// Authentication service  
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Analytics service
+builder.Services.AddScoped<AnalyticsService>();
+
+// Health checks for monitoring
 if (builder.Configuration.GetValue<bool>("Monitoring:EnableHealthChecks", true))
 {
     var healthChecksBuilder = builder.Services.AddHealthChecks()
@@ -137,6 +151,28 @@ builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<CustomerService>();
 
+// Register database initialization service
+builder.Services.AddScoped<IDatabaseInitializationService, DatabaseInitializationService>();
+
+// Register HttpClient for payment services
+builder.Services.AddHttpClient();
+
+// Register payment services
+builder.Services.AddScoped<IStripeService, StripeService>();
+builder.Services.AddScoped<IPayPalService, PayPalService>();
+
+// Register file upload service
+builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+
+// Configure multipart request limits for file uploads
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = 10 * 1024 * 1024; // 10MB
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+    options.MemoryBufferThreshold = int.MaxValue;
+});
+
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -161,6 +197,29 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Enable static files for serving uploaded images
+app.UseStaticFiles();
+
+// Configure static files for images with proper headers
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Set cache headers for images
+        if (ctx.File.Name.ToLowerInvariant().EndsWith(".jpg") ||
+            ctx.File.Name.ToLowerInvariant().EndsWith(".jpeg") ||
+            ctx.File.Name.ToLowerInvariant().EndsWith(".png") ||
+            ctx.File.Name.ToLowerInvariant().EndsWith(".gif") ||
+            ctx.File.Name.ToLowerInvariant().EndsWith(".webp"))
+        {
+            ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=31536000");
+            ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+            ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET");
+            ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "*");
+        }
+    }
+});
 
 app.UseCors();
 
@@ -192,31 +251,58 @@ app.MapGet("/signin", (string name, string token) =>
     return Results.Ok(new { message = "Signin endpoint", name, token });
 });
 
-// Database initialization
+// Test endpoint for image serving
+app.MapGet("/test-image/{*imagePath}", (string imagePath) =>
+{
+    var fullPath = Path.Combine(builder.Environment.WebRootPath, "images", imagePath);
+    if (File.Exists(fullPath))
+    {
+        return Results.Ok(new { 
+            exists = true, 
+            path = fullPath,
+            size = new FileInfo(fullPath).Length,
+            webRootPath = builder.Environment.WebRootPath,
+            requestedPath = imagePath
+        });
+    }
+    return Results.NotFound(new { 
+        exists = false, 
+        path = fullPath,
+        webRootPath = builder.Environment.WebRootPath,
+        requestedPath = imagePath
+    });
+});
+
+// Database initialization with comprehensive schema
 using (var scope = app.Services.CreateScope())
 {
     try
     {
-        var context = scope.ServiceProvider.GetRequiredService<HidaSushiDbContext>();
-        
-        // Ensure database is created
-        await context.Database.EnsureCreatedAsync();
-        
-        // Log database status
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("Database connection established successfully");
+        logger.LogInformation("Starting application database initialization...");
         
-        // Optional: Run migrations
-        if (app.Environment.IsDevelopment())
+        // Use our comprehensive database initialization service
+        var databaseInitializationService = scope.ServiceProvider.GetRequiredService<IDatabaseInitializationService>();
+        await databaseInitializationService.InitializeDatabaseAsync();
+        
+        // Test the connection to ensure everything is working
+        var context = scope.ServiceProvider.GetRequiredService<HidaSushiDbContext>();
+        var canConnect = await context.Database.CanConnectAsync();
+        
+        if (canConnect)
         {
-            // Use EnsureCreated for development to avoid migration issues
-            // await context.Database.MigrateAsync();
+            logger.LogInformation("✅ Database connection established successfully!");
+            logger.LogInformation("✅ HidaSushi comprehensive database schema is ready!");
+        }
+        else
+        {
+            logger.LogWarning("⚠️ Database connection test failed");
         }
     }
     catch (Exception ex)
     {
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while initializing the database");
+        logger.LogError(ex, "❌ An error occurred while initializing the database");
         throw;
     }
 }

@@ -24,10 +24,9 @@ public class IngredientsController : ControllerBase
     {
         var list = await _context.Ingredients
             .AsNoTracking()
-                .Where(i => i.IsAvailable)
-                .OrderBy(i => i.Category)
-                .ThenBy(i => i.Name)
-                .ToListAsync();
+            .OrderBy(i => i.Category)
+            .ThenBy(i => i.Name)
+            .ToListAsync();
         return Ok(list);
     }
 
@@ -68,10 +67,10 @@ public class IngredientsController : ControllerBase
     public async Task<ActionResult<Ingredient>> GetIngredient(int id)
     {
         var ingredient = await _context.Ingredients.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id);
-            if (ingredient == null)
-            {
-                return NotFound();
-            }
+        if (ingredient == null)
+        {
+            return NotFound();
+        }
         return Ok(ingredient);
     }
 
@@ -134,22 +133,22 @@ public class IngredientsController : ControllerBase
         return NoContent();
     }
 
-    // PATCH: api/Ingredients/5/availability
-    [HttpPatch("{id}/availability")]
+    // PUT: api/Ingredients/5/toggle-availability (Admin panel compatibility)
+    [HttpPut("{id}/toggle-availability")]
     [Authorize]
-    public async Task<IActionResult> ToggleAvailability(int id)
+    public async Task<IActionResult> ToggleAvailabilityAdmin(int id)
+    {
+        var ingredient = await _context.Ingredients.FindAsync(id);
+        if (ingredient == null)
         {
-            var ingredient = await _context.Ingredients.FindAsync(id);
-            if (ingredient == null)
-            {
-                return NotFound();
-            }
+            return NotFound();
+        }
 
-            ingredient.IsAvailable = !ingredient.IsAvailable;
-            await _context.SaveChangesAsync();
+        ingredient.IsAvailable = !ingredient.IsAvailable;
+        await _context.SaveChangesAsync();
 
         return Ok(new { IsAvailable = ingredient.IsAvailable });
-        }
+    }
 
     // POST: api/Ingredients/calculate-price
     [HttpPost("calculate-price")]

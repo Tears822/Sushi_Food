@@ -22,14 +22,15 @@ builder.Services.AddHttpClient("ServerAPI", client =>
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
-// Register services
+// Register application services
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IToastService, ToastService>();
 builder.Services.AddScoped<IFlowbiteService, FlowbiteService>();
-builder.Services.AddScoped<IApiService, ApiService>();
-builder.Services.AddScoped<IGodCoinService, GodCoinService>();
 builder.Services.AddScoped<ILocalizationService, LocalizationService>();
-// builder.Services.AddScoped<IStripeService, StripeService>(); // TODO: Implement StripeService
-builder.Services.AddSingleton<ICartService, CartService>();
-builder.Services.AddSingleton<IToastService, ToastService>();
+builder.Services.AddScoped<IGodCoinService, GodCoinService>();
+builder.Services.AddScoped<IStripeService, StripeService>();
+builder.Services.AddScoped<IPayPalService, PayPalService>();
+builder.Services.AddScoped<IApiService, ApiService>();
 
 // Add configuration
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);

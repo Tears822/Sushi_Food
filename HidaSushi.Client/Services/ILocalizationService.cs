@@ -80,8 +80,14 @@ public class LocalizationService : ILocalizationService
             // Set the culture for the Resource class - this is crucial for proper localization
             Resource.Culture = culture;
             
+            // Add a small delay to ensure culture is properly set before notifying components
+            await Task.Delay(10);
+            
             // Notify subscribers that language has changed
             OnLanguageChanged?.Invoke();
+            
+            // Force a small additional delay to ensure all components have processed the change
+            await Task.Delay(50);
         }
     }
 

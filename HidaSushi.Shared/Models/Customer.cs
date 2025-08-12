@@ -21,6 +21,8 @@ public class Customer
     
     public bool EmailVerified { get; set; } = false;
     
+    public bool PhoneVerified { get; set; } = false;
+    
     public string? PreferencesJson { get; set; } // JSON for dietary preferences
     
     public int TotalOrders { get; set; } = 0;

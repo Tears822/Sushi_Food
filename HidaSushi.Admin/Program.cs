@@ -15,18 +15,39 @@ builder.Services.AddRazorComponents()
 // Add HttpContextAccessor for server-side auth
 builder.Services.AddHttpContextAccessor();
 
+// Caching services
+builder.Services.AddMemoryCache();
+
+// Add distributed cache based on configuration
+if (builder.Configuration.GetValue<bool>("Caching:Redis:Enabled", false))
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = builder.Configuration.GetConnectionString("Redis");
+        options.InstanceName = "HidaSushiAdmin";
+    });
+}
+else
+{
+    // Use in-memory distributed cache as fallback
+    builder.Services.AddDistributedMemoryCache();
+}
+
 // Add HttpClient for API calls
 builder.Services.AddHttpClient("AuthClient", client =>
 {
-    client.BaseAddress = new Uri("https://apimailbroker.ddns.net/");
+    client.BaseAddress = new Uri(builder.Configuration.GetValue<string>("ApiBaseUrl", "https://adminmailbroker.ddns.net/"));
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
 builder.Services.AddHttpClient("AdminApi", client =>
 {
-    client.BaseAddress = new Uri("https://apimailbroker.ddns.net/");
+    client.BaseAddress = new Uri(builder.Configuration.GetValue<string>("ApiBaseUrl", "https://apimailbroker.ddns.net/"));
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
+
+// Register AdminApiService interface
+builder.Services.AddScoped<IAdminApiService, AdminApiService>();
 
 // Add Authentication/Authorization for Blazor Server
 builder.Services.AddAuthentication(options =>
@@ -48,12 +69,15 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// Register custom services
-builder.Services.AddScoped<CustomAuthenticationStateProvider>();
-builder.Services.AddScoped<AuthenticationStateProvider>(provider => 
-    provider.GetRequiredService<CustomAuthenticationStateProvider>());
+// Register Admin Services
 builder.Services.AddScoped<HidaSushi.Admin.Services.AuthenticationService>();
-builder.Services.AddScoped<AdminApiService>();
+builder.Services.AddScoped<CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
+    provider.GetRequiredService<CustomAuthenticationStateProvider>());
+builder.Services.AddScoped<IWeatherService, WeatherService>();
+
+// Add SignalR for real-time updates
+builder.Services.AddSignalR();
 
 // Add forwarded headers for reverse proxy
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -73,8 +97,22 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseForwardedHeaders();
-
 app.UseHttpsRedirection();
+
+// Add CSP header to allow images from API server
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Remove("Content-Security-Policy");
+    context.Response.Headers.Append("Content-Security-Policy", 
+        "default-src 'self'; " +
+        "img-src 'self' data: https: http: https://apimailbroker.ddns.net https://*.ddns.net; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "font-src 'self'; " +
+        "connect-src 'self' wss: ws: https: https://apimailbroker.ddns.net; " +
+        "frame-src 'self'");
+    await next();
+});
 
 app.UseStaticFiles();
 app.UseAntiforgery();
@@ -126,6 +164,35 @@ app.MapGet("/signin", async (HttpContext context, string? name, string? token, s
     var target = string.IsNullOrWhiteSpace(returnUrl) ? "/admin" : returnUrl;
     Console.WriteLine($"Redirecting to: {target}");
     return Results.Redirect(target);
+});
+
+// Image proxy endpoint to avoid CSP issues
+app.MapGet("/proxy-image/{*imagePath}", async (HttpContext context, string imagePath, IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        var client = httpClientFactory.CreateClient();
+        var imageUrl = $"https://apimailbroker.ddns.net/{imagePath}";
+        
+        var response = await client.GetAsync(imageUrl);
+        if (response.IsSuccessStatusCode)
+        {
+            var imageBytes = await response.Content.ReadAsByteArrayAsync();
+            var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/jpeg";
+            
+            context.Response.Headers.Append("Cache-Control", "public, max-age=31536000");
+            return Results.File(imageBytes, contentType);
+        }
+        else
+        {
+            return Results.NotFound();
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error proxying image {imagePath}: {ex.Message}");
+        return Results.StatusCode(500);
+    }
 });
 
 app.MapRazorComponents<App>()

@@ -214,32 +214,6 @@
     <value>Enregistrer</value>
   </data>
   
-  <!-- Home Page Additional -->
-  <data name="Home.ReadyToOrder" xml:space="preserve">
-    <value>Prêt à</value>
-  </data>
-  <data name="Home.OrderQuestion" xml:space="preserve">
-    <value>Commander ?</value>
-  </data>
-  <data name="Home.OrderDescription" xml:space="preserve">
-    <value>Découvrez le mélange parfait de tradition et d'innovation. Commandez maintenant pour du sushi frais livré à votre porte.</value>
-  </data>
-  <data name="Home.ViewMenu" xml:space="preserve">
-    <value>Voir le Menu</value>
-  </data>
-  <data name="Home.BuildYourOwn" xml:space="preserve">
-    <value>Créer le Vôtre</value>
-  </data>
-  <data name="Home.PremiumSushi" xml:space="preserve">
-    <value>Sushi Premium</value>
-  </data>
-  <data name="Home.FreshDelicious" xml:space="preserve">
-    <value>Frais &amp; Délicieux</value>
-  </data>
-  <data name="Home.TrackOrderDescription" xml:space="preserve">
-    <value>Suivez votre commande en temps réel et savourez du sushi frais livré à votre porte</value>
-  </data>
-  
   <!-- Menu Page -->
   <data name="Menu.Title" xml:space="preserve">
     <value>Menu - HIDA SUSHI</value>
@@ -456,6 +430,35 @@
     <value>De la commande à la livraison, nous nous concentrons sur la création d'expériences mémorables qui apportent joie et satisfaction à chaque interaction client.</value>
   </data>
   
+  <!-- About Page Additional Missing Entries -->
+  <data name="About.Subtitle" xml:space="preserve">
+    <value>Créer des expériences sushi exceptionnelles avec passion, art et tradition japonaise authentique</value>
+  </data>
+  <data name="About.StoryTitle" xml:space="preserve">
+    <value>Notre Histoire</value>
+  </data>
+  <data name="About.StoryDescription2" xml:space="preserve">
+    <value>Après des années de formation sous les maîtres sushi de Tokyo, le Chef Jonathan a apporté son expertise à Bruxelles, où il a découvert la fusion parfaite entre tradition japonaise et innovation européenne. Chaque roll raconte une histoire, chaque ingrédient a un but.</value>
+  </data>
+  <data name="About.StoryDescription3" xml:space="preserve">
+    <value>Aujourd'hui, HIDA SUSHI représente plus qu'un simple restaurant—c'est un voyage culinaire qui honore le passé tout en embrassant l'avenir. Nous croyons que les grands sushis ne concernent pas seulement le goût, mais la création de moments de joie et de connexion.</value>
+  </data>
+  <data name="About.FreshIngredientsCount" xml:space="preserve">
+    <value>Ingrédients Frais</value>
+  </data>
+  <data name="About.ReadyToOrder" xml:space="preserve">
+    <value>Prêt à Commander?</value>
+  </data>
+  <data name="About.OrderQuestion" xml:space="preserve">
+    <value>Découvrez l'art du sushi exceptionnel, préparé avec passion et livré avec soin.</value>
+  </data>
+  <data name="About.ViewMenu" xml:space="preserve">
+    <value>Voir le Menu</value>
+  </data>
+  <data name="About.BuildYourOwn" xml:space="preserve">
+    <value>Créez le Vôtre</value>
+  </data>
+
   <!-- Contact Page -->
   <data name="Contact.Title" xml:space="preserve">
     <value>Contact &amp; Horaires - HIDA SUSHI</value>

@@ -25,7 +25,7 @@ public class AuthController : ControllerBase
         
         try
         {
-            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+            if (string.IsNullOrEmpty(request?.Username) || string.IsNullOrEmpty(request?.Password))
             {
                 return BadRequest(new LoginResponse 
                 { 
@@ -50,7 +50,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during login attempt for username: {Username}", request.Username);
+            _logger.LogError(ex, "Error during login attempt for username: {Username}", request?.Username);
             return StatusCode(500, new LoginResponse 
             { 
                 Success = false, 

@@ -2,6 +2,23 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HidaSushi.Shared.Models;
 
+public class DashboardStats
+{
+    public int TotalOrders { get; set; }
+    public decimal TotalRevenue { get; set; }
+    public decimal TodayRevenue { get; set; }
+    public int PendingOrders { get; set; }
+    public int CompletedOrders { get; set; }
+    public int TotalCustomers { get; set; }
+    public int TotalMenuItems { get; set; }
+    public int TotalIngredients { get; set; }
+    public decimal AverageOrderValue { get; set; }
+    public List<PopularItem> TopSellingItems { get; set; } = new();
+    public List<PopularItem> TopIngredients { get; set; } = new();
+    public Dictionary<string, int> OrdersByStatus { get; set; } = new();
+    public Dictionary<string, decimal> RevenueByDay { get; set; } = new();
+}
+
 public class DailyAnalytics
 {
     public int Id { get; set; }
@@ -51,14 +68,14 @@ public class OrderStatusHistory
     public int OrderId { get; set; }
     public string PreviousStatus { get; set; } = "";
     public string NewStatus { get; set; } = "";
-    public int? ChangedBy { get; set; } // AdminUser ID
+    public int? UpdatedBy { get; set; } // AdminUser ID
     public string Notes { get; set; } = "";
     public DateTime? EstimatedCompletionTime { get; set; }
     public DateTime CreatedAt { get; set; }
     
     // Navigation properties
     public Order Order { get; set; } = null!;
-    public AdminUser? ChangedByUser { get; set; }
+    public AdminUser? UpdatedByUser { get; set; }
 }
 
 public class WeeklyReport

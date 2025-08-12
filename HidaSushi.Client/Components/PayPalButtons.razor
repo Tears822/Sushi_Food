@@ -1,0 +1,96 @@
+@using Microsoft.JSInterop
+@using HidaSushi.Client.Services
+@inject IJSRuntime JSRuntime
+@inject IPayPalService PayPalService
+@inject ILogger<PayPalButtons> Logger
+
+<div id="paypal-button-container" @ref="payPalContainer"></div>
+
+@code {
+    [Parameter] public decimal Amount { get; set; }
+    [Parameter] public int OrderId { get; set; }
+    [Parameter] public string CustomerEmail { get; set; } = "";
+    [Parameter] public EventCallback<PayPalCaptureResponse> OnPaymentSuccess { get; set; }
+    [Parameter] public EventCallback<string> OnPaymentError { get; set; }
+    [Parameter] public EventCallback OnPaymentCancel { get; set; }
+
+    private ElementReference payPalContainer;
+    private DotNetObjectReference<PayPalButtons>? objRef;
+    private readonly string _paypalClientId = "YOUR_PAYPAL_CLIENT_ID"; // Replace with your actual PayPal Client ID
+
+    protected override void OnInitialized()
+    {
+        objRef = DotNetObjectReference.Create(this);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && objRef != null)
+        {
+            try
+            {
+                // Load PayPal SDK and initialize buttons
+                await JSRuntime.InvokeVoidAsync("loadPayPalSDK", _paypalClientId);
+                await JSRuntime.InvokeVoidAsync("initializePayPalButtons", payPalContainer, Amount, OrderId, objRef);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to initialize PayPal buttons");
+                await OnPaymentError.InvokeAsync($"Failed to initialize PayPal: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task<PayPalOrderResponse> CreatePayPalOrder()
+    {
+        try
+        {
+            var result = await PayPalService.CreateOrderAsync(Amount, CustomerEmail, OrderId);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to create PayPal order");
+            throw;
+        }
+    }
+
+    [JSInvokable]
+    public async Task<PayPalCaptureResponse> CapturePayPalPayment(string orderId)
+    {
+        try
+        {
+            var result = await PayPalService.CapturePaymentAsync(orderId);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to capture PayPal payment");
+            throw;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnPayPalPaymentSuccess(PayPalCaptureResponse captureResult)
+    {
+        await OnPaymentSuccess.InvokeAsync(captureResult);
+    }
+
+    [JSInvokable]
+    public async Task OnPayPalPaymentError(string errorMessage)
+    {
+        await OnPaymentError.InvokeAsync(errorMessage);
+    }
+
+    [JSInvokable]
+    public async Task OnPayPalPaymentCancel()
+    {
+        await OnPaymentCancel.InvokeAsync();
+    }
+
+    public void Dispose()
+    {
+        objRef?.Dispose();
+    }
+} 

@@ -7,7 +7,6 @@ public class Order
 {
     public int Id { get; set; }
     
-    [Required]
     public string OrderNumber { get; set; } = string.Empty;
     
     // Customer relationship (nullable for guest orders)
@@ -18,13 +17,13 @@ public class Order
     
     public string CustomerEmail { get; set; } = string.Empty;
     
-    public string CustomerPhone { get; set; } = string.Empty;
+    public string? CustomerPhone { get; set; } = string.Empty;
     
     public OrderType Type { get; set; }
     
-    public string DeliveryAddress { get; set; } = string.Empty;
+    public string? DeliveryAddress { get; set; } = string.Empty;
     
-    public string DeliveryInstructions { get; set; } = string.Empty;
+    public string? DeliveryInstructions { get; set; } = string.Empty;
     
     // Enhanced pricing breakdown
     public decimal SubtotalAmount { get; set; }
@@ -48,7 +47,7 @@ public class Order
     
     public string? PaymentReference { get; set; } // Transaction ID reference
     
-    public string Notes { get; set; } = string.Empty;
+    public string? Notes { get; set; } = string.Empty;
     
     // Enhanced tracking timestamps
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -94,7 +93,7 @@ public class OrderItem
     
     public int OrderId { get; set; }
     
-    public Order Order { get; set; } = null!;
+    public Order? Order { get; set; }
     
     public int? SushiRollId { get; set; } // For signature rolls
     
@@ -110,9 +109,9 @@ public class OrderItem
     
     public decimal Price { get; set; } // Total price (UnitPrice * Quantity)
     
-    public string Notes { get; set; } = string.Empty;
+    public string? Notes { get; set; } = string.Empty;
     
-    public string SpecialInstructions { get; set; } = string.Empty;
+    public string? SpecialInstructions { get; set; } = string.Empty;
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
@@ -142,7 +141,7 @@ public class CustomRoll
     [NotMapped]
     public List<string> Allergens { get; set; } = new(); // Calculated from ingredients
     
-    public string Notes { get; set; } = string.Empty;
+    public string? Notes { get; set; } = string.Empty;
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
@@ -166,8 +165,9 @@ public enum OrderStatus
 
 public enum PaymentMethod
 {
-    Stripe,
     CashOnDelivery,
+    Stripe,
+    PayPal,
     GodPay
 }
 

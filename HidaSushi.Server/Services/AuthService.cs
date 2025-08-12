@@ -16,7 +16,7 @@ public class AuthService : IAuthService
         _jwtService = jwtService;
     }
 
-    public async Task<AuthResult> LoginAsync(string username, string password)
+    public Task<AuthResult> LoginAsync(string username, string password)
     {
         var validCredentials = new Dictionary<string, (string password, string role)>
         {
@@ -28,24 +28,24 @@ public class AuthService : IAuthService
         if (validCredentials.TryGetValue(username, out var credentials) && credentials.password == password)
         {
             var jwtResponse = _jwtService.GenerateToken(username);
-            return new AuthResult
+            return Task.FromResult(new AuthResult
             {
                 Success = true,
                 Token = jwtResponse.Token,
                 Username = username,
                 Role = credentials.role,
                 Message = jwtResponse.Message
-            };
+            });
         }
 
-        return new AuthResult
+        return Task.FromResult(new AuthResult
         {
             Success = false,
             Message = "Invalid username or password"
-        };
+        });
     }
 
-    public async Task<bool> ValidateTokenAsync(string token)
+    public Task<bool> ValidateTokenAsync(string token)
     {
         try
         {
@@ -64,11 +64,11 @@ public class AuthService : IAuthService
                 ClockSkew = TimeSpan.Zero
             }, out SecurityToken _);
 
-            return true;
+            return Task.FromResult(true);
         }
         catch
         {
-            return false;
+            return Task.FromResult(false);
         }
     }
 

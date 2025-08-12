@@ -6,11 +6,22 @@
     <div>
         <button type="button" 
                 @onclick="ToggleDropdown"
-                class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 @(_isChangingLanguage ? "opacity-50 cursor-not-allowed" : "")"
                 id="language-menu-button" 
                 aria-expanded="@_isOpen" 
-                aria-haspopup="true">
-            <span class="mr-2">@GetCurrentLanguageFlag()</span>
+                aria-haspopup="true"
+                disabled="@_isChangingLanguage">
+            @if (_isChangingLanguage)
+            {
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            }
+            else
+            {
+                <span class="mr-2">@GetCurrentLanguageFlag()</span>
+            }
             @GetCurrentLanguageName()
             <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -44,6 +55,7 @@
 
 @code {
     private bool _isOpen = false;
+    private bool _isChangingLanguage = false;
 
     protected override void OnInitialized()
     {
@@ -57,8 +69,22 @@
 
     private async Task SelectLanguage(string languageCode)
     {
-        await LocalizationService.SetLanguage(languageCode);
+        if (_isChangingLanguage) return; // Prevent multiple calls
+        
+        _isChangingLanguage = true;
         _isOpen = false;
+        StateHasChanged(); // Update UI to close dropdown
+        
+        try
+        {
+            await LocalizationService.SetLanguage(languageCode);
+            // Force a re-render after language change
+            await InvokeAsync(StateHasChanged);
+        }
+        finally
+        {
+            _isChangingLanguage = false;
+        }
     }
 
     private void OnLanguageChanged()

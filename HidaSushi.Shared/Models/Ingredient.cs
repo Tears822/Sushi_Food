@@ -10,16 +10,18 @@ public class Ingredient
     [Required]
     public string Name { get; set; } = string.Empty;
     
-    public string Description { get; set; } = string.Empty;
+    public string? Description { get; set; } = string.Empty;
     
     public IngredientCategory Category { get; set; }
     
     public decimal AdditionalPrice { get; set; } = 0;
     
     // Alias for backward compatibility with existing code
-    public decimal Price => AdditionalPrice;
+    public decimal Price { get; set; } = 0;
     
     public bool IsAvailable { get; set; } = true;
+    
+    public bool IsVegetarian { get; set; } = true;
     
     [NotMapped]
     public List<string> Allergens { get; set; } = new();
@@ -29,7 +31,7 @@ public class Ingredient
     
     public int MaxAllowed { get; set; } = 1;
     
-    public string ImageUrl { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; } = string.Empty;
     
     // Additional properties for nutrition info (optional)
     public int Calories { get; set; } = 0;

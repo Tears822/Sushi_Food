@@ -143,7 +143,7 @@ public class CacheService : ICacheService
         }
     }
 
-    public async Task RemoveByPatternAsync(string pattern, CancellationToken cancellationToken = default)
+    public Task RemoveByPatternAsync(string pattern, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -162,6 +162,8 @@ public class CacheService : ICacheService
         {
             _logger.LogError(ex, "Error removing cache by pattern: {Pattern}", pattern);
         }
+        
+        return Task.CompletedTask;
     }
 
     public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItem, TimeSpan? expiration = null, CancellationToken cancellationToken = default) where T : class
@@ -180,8 +182,9 @@ public class CacheService : ICacheService
             if (value != null)
             {
                 await SetAsync(key, value, expiration, cancellationToken);
+                return value;
             }
-            return value;
+            return default(T)!; // Explicitly handle null case
         }
         catch (Exception ex)
         {

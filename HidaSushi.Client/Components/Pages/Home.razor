@@ -163,7 +163,7 @@
             </p>
         </div>
         
-        @if (isLoading)
+        @if (isLoadingRolls)
         {
             <div class="flex justify-center items-center py-20">
                 <div class="text-center">
@@ -172,10 +172,10 @@
                 </div>
             </div>
         }
-        else if (popularRolls?.Any() == true)
+        else if (signatureRolls?.Any() == true)
         {
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                @foreach (var roll in popularRolls.Take(6))
+                @foreach (var roll in signatureRolls.Take(6))
                 {
                     <ProductCard Roll="roll" OnAddToCart="AddToCart" />
                 }
@@ -329,40 +329,41 @@
 </section>
 
 @code {
-    private List<SushiRoll> popularRolls = new();
-    private bool isLoading = true;
+    private List<SushiRoll> signatureRolls = new();
+    private bool isLoadingRolls = true;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadPopularRolls();
-        
-        // Subscribe to language changes to refresh the component
-        LocalizationService.OnLanguageChanged += StateHasChanged;
+        await LoadSignatureRolls();
+        LocalizationService.OnLanguageChanged += OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged()
+    {
+        InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
-        // Unsubscribe from language changes
-        LocalizationService.OnLanguageChanged -= StateHasChanged;
+        LocalizationService.OnLanguageChanged -= OnLanguageChanged;
     }
 
-    private async Task LoadPopularRolls()
+    private async Task LoadSignatureRolls()
     {
         try
         {
-            isLoading = true;
+            isLoadingRolls = true;
             var allRolls = await ApiService.GetSushiRollsAsync();
-            popularRolls = allRolls?.Where(r => r.IsSignatureRoll && r.IsAvailable).Take(6).ToList() ?? new();
+            signatureRolls = allRolls?.Where(r => r.IsSignatureRoll && r.IsAvailable).Take(6).ToList() ?? new();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading popular rolls");
-            // Fallback to sample data
-            popularRolls = GetSampleRolls();
+            Logger.LogError(ex, "Error loading signature rolls from backend");
+            signatureRolls = new List<SushiRoll>();
         }
         finally
         {
-            isLoading = false;
+            isLoadingRolls = false;
             StateHasChanged();
         }
     }
@@ -391,19 +392,6 @@
             "salmon teriyaki" => "/images/rolls/salmon-teriyaki.jpg",
             "spicy tuna" => "/images/rolls/spicy-tuna.jpg",
             _ => "/images/rolls/default-roll.jpg"
-        };
-    }
-
-    private List<SushiRoll> GetSampleRolls()
-    {
-        return new List<SushiRoll>
-        {
-            new() { Id = 1, Name = "Dragon Roll", Description = "Grilled eel, cucumber, avocado with special sauce", Price = 18.90m, IsSignatureRoll = true, IsAvailable = true },
-            new() { Id = 2, Name = "California Roll", Description = "Crab, avocado, cucumber wrapped in seaweed", Price = 12.50m, IsSignatureRoll = true, IsAvailable = true },
-            new() { Id = 3, Name = "Salmon Teriyaki", Description = "Fresh salmon with teriyaki glaze and sesame seeds", Price = 15.90m, IsSignatureRoll = true, IsAvailable = true },
-            new() { Id = 4, Name = "Spicy Tuna Roll", Description = "Fresh tuna with spicy mayo and tempura flakes", Price = 14.90m, IsSignatureRoll = true, IsAvailable = true },
-            new() { Id = 5, Name = "Rainbow Roll", Description = "California roll topped with assorted sashimi", Price = 22.90m, IsSignatureRoll = true, IsAvailable = true },
-            new() { Id = 6, Name = "Vegetarian Delight", Description = "Avocado, cucumber, carrot with sesame dressing", Price = 11.90m, IsSignatureRoll = true, IsAvailable = true, IsVegetarian = true }
         };
     }
 } 

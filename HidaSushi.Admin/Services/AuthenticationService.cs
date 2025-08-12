@@ -9,9 +9,9 @@ public class AuthenticationService
 {
     private readonly HttpClient _httpClient;
     private readonly CustomAuthenticationStateProvider _authStateProvider;
-    private readonly AdminApiService _adminApiService;
+    private readonly IAdminApiService _adminApiService;
 
-    public AuthenticationService(IHttpClientFactory httpClientFactory, CustomAuthenticationStateProvider authStateProvider, AdminApiService adminApiService)
+    public AuthenticationService(IHttpClientFactory httpClientFactory, CustomAuthenticationStateProvider authStateProvider, IAdminApiService adminApiService)
     {
         _httpClient = httpClientFactory.CreateClient("AuthClient");
         _authStateProvider = authStateProvider;

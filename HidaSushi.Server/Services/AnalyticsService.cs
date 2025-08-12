@@ -91,6 +91,7 @@ public class AnalyticsService
         return await _context.OrderItems
             .Include(oi => oi.SushiRoll)
             .Where(oi => oi.SushiRollId != null && 
+                        oi.Order != null &&
                         oi.Order.CreatedAt >= fromDate && 
                         oi.Order.CreatedAt < toDate)
             .GroupBy(oi => oi.SushiRoll)
@@ -167,6 +168,7 @@ public class AnalyticsService
         return await _context.OrderItems
             .Include(oi => oi.SushiRoll)
             .Where(oi => oi.SushiRollId != null && 
+                        oi.Order != null &&
                         oi.Order.CreatedAt >= fromDate && 
                         oi.Order.CreatedAt < toDate)
             .GroupBy(oi => oi.SushiRoll)

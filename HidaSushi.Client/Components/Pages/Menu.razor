@@ -142,6 +142,22 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadRolls();
+        LocalizationService.OnLanguageChanged += OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        LocalizationService.OnLanguageChanged -= OnLanguageChanged;
+    }
+
+    private async Task LoadRolls()
+    {
         try
         {
             isLoading = true;
@@ -161,31 +177,15 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error initializing Menu page");
-
-            // Fallback to default rolls if backend fails
-            allRolls = SignatureRolls.DefaultRolls;
-            filteredRolls = allRolls;
-            
-            foreach (var roll in allRolls)
-            {
-                quantities[roll.Id] = 1;
-            }
+            Logger.LogError(ex, "Error loading menu from backend");
+            allRolls = new List<SushiRoll>();
+            filteredRolls = new List<SushiRoll>();
         }
         finally
         {
             isLoading = false;
             StateHasChanged();
         }
-        
-        // Subscribe to language changes to refresh the component
-        LocalizationService.OnLanguageChanged += StateHasChanged;
-    }
-
-    public void Dispose()
-    {
-        // Unsubscribe from language changes
-        LocalizationService.OnLanguageChanged -= StateHasChanged;
     }
 
     private async Task SetFilterAll()
@@ -197,12 +197,12 @@
             StateHasChanged();
 
             filteredRolls = await ApiService.GetMenuAsync();
-    }
+        }
         catch (Exception ex)
-    {
+        {
             Logger.LogError(ex, "Error filtering all rolls");
-            filteredRolls = allRolls;
-    }
+            filteredRolls = new List<SushiRoll>();
+        }
         finally
         {
             isLoading = false;
@@ -223,7 +223,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error filtering signature rolls");
-            filteredRolls = allRolls.Where(r => !r.IsVegetarian).ToList();
+            filteredRolls = new List<SushiRoll>();
         }
         finally
         {
@@ -245,8 +245,8 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error filtering vegetarian rolls");
-            filteredRolls = allRolls.Where(r => r.IsVegetarian).ToList();
-    }
+            filteredRolls = new List<SushiRoll>();
+        }
         finally
         {
             isLoading = false;

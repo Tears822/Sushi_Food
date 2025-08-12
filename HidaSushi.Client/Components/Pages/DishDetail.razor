@@ -1,0 +1,286 @@
+@page "/dish/{Id:int}"
+@using HidaSushi.Shared.Models
+@using HidaSushi.Client.Services
+@inject IApiService ApiService
+@inject ICartService CartService
+@inject IToastService ToastService
+@inject NavigationManager Navigation
+@inject ILogger<DishDetail> Logger
+@inherits FlowbitePage
+
+<PageTitle>@(dish?.Name ?? "Dish Details") - HIDA SUSHI</PageTitle>
+
+@if (isLoading)
+{
+    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-green-50">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
+            <p class="text-gray-600 text-lg">Loading dish details...</p>
+        </div>
+    </div>
+}
+else if (dish == null)
+{
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="text-center">
+            <div class="text-6xl mb-4">🍱</div>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Dish Not Found</h2>
+            <button @onclick="@(() => Navigation.NavigateTo("/menu"))" 
+                    class="bg-gradient-to-r from-green-600 to-blue-600 text-white font-semibold py-3 px-6 rounded-2xl">
+                Back to Menu
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Back Button -->
+    <div class="fixed top-24 left-4 z-50">
+        <button @onclick="@(() => Navigation.NavigateTo("/menu"))" 
+                class="flex items-center px-4 py-2 bg-white/90 backdrop-blur-lg text-gray-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200/50">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Menu
+        </button>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-br from-slate-50 to-green-50 pt-20 pb-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <!-- Image Section -->
+                <div class="relative h-96 lg:h-[500px] bg-gradient-to-br from-green-50 to-blue-50 rounded-3xl overflow-hidden shadow-2xl">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center">
+                            <span class="text-9xl opacity-80">🍣</span>
+                            <div class="mt-4 text-lg text-gray-500 font-medium">Premium Sushi</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Badges -->
+                    <div class="absolute top-6 left-6 flex flex-col space-y-3">
+                        @if (dish.IsSignatureRoll)
+                        {
+                            <span class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-sm font-bold rounded-full shadow-lg">
+                                ⭐ Signature Roll
+                            </span>
+                        }
+                        @if (dish.IsVegetarian)
+                        {
+                            <span class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-400 to-emerald-400 text-white text-sm font-bold rounded-full shadow-lg">
+                                🌱 Vegetarian
+                            </span>
+                        }
+                    </div>
+                    
+                    <div class="absolute bottom-6 right-6">
+                        <span class="px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white text-2xl font-bold rounded-full shadow-lg">
+                            €@dish.Price.ToString("F2")
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Details Section -->
+                <div class="space-y-6">
+                    <div>
+                        <h1 class="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">@dish.Name</h1>
+                        <p class="text-xl text-gray-600 leading-relaxed">@dish.Description</p>
+                    </div>
+
+                    <!-- Nutritional Info (if available) -->
+                    <div class="bg-white/80 backdrop-blur-lg rounded-2xl p-6 border border-gray-200/50">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Nutritional Information
+                        </h3>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-green-600">~350</div>
+                                <div class="text-sm text-gray-600">Calories</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-blue-600">18g</div>
+                                <div class="text-sm text-gray-600">Protein</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-orange-600">45g</div>
+                                <div class="text-sm text-gray-600">Carbs</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-purple-600">12g</div>
+                                <div class="text-sm text-gray-600">Fat</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add to Cart Section -->
+                    <div class="bg-white/80 backdrop-blur-lg rounded-2xl p-6 border border-gray-200/50">
+                        <h3 class="text-lg font-semibold mb-4">Add to Cart</h3>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center space-x-3">
+                                <button @onclick="DecreaseQuantity" 
+                                        class="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                                    </svg>
+                                </button>
+                                <span class="text-xl font-semibold w-8 text-center">@quantity</span>
+                                <button @onclick="IncreaseQuantity" 
+                                        class="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <button @onclick="AddToCart" 
+                                    class="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                                <span class="flex items-center justify-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l-2.5-5M7 13h10m0 0v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6z"/>
+                                    </svg>
+                                    Add to Cart - €@((dish.Price * quantity).ToString("F2"))
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Ingredients Section -->
+    @if (dish.Ingredients?.Any() == true)
+    {
+        <section class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">Fresh Ingredients</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    @foreach (var ingredient in dish.Ingredients)
+                    {
+                        <div class="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-4 text-center border border-gray-200/50 hover:shadow-lg transition-all duration-300">
+                            <div class="text-2xl mb-2">🥢</div>
+                            <span class="text-gray-800 font-medium">@ingredient</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </section>
+    }
+
+    <!-- Related Dishes Section -->
+    @if (relatedDishes?.Any() == true)
+    {
+        <section class="py-16 bg-gradient-to-br from-slate-50 to-green-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">You Might Also Like</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    @foreach (var relatedDish in relatedDishes.Take(3))
+                    {
+                        <div class="bg-white/80 backdrop-blur-lg rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-200/50 hover:border-green-300/50 transform hover:-translate-y-2 cursor-pointer"
+                             @onclick="@(() => Navigation.NavigateTo($"/dish/{relatedDish.Id}"))">
+                            <div class="relative h-48 bg-gradient-to-br from-green-50 to-blue-50 overflow-hidden">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-6xl opacity-80">🍣</span>
+                                </div>
+                                @if (relatedDish.IsSignatureRoll)
+                                {
+                                    <div class="absolute top-3 left-3">
+                                        <span class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs font-bold rounded-full shadow-lg">
+                                            ⭐ Signature
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                            <div class="p-6">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="text-xl font-bold text-gray-900">@relatedDish.Name</h3>
+                                    <span class="text-xl font-bold text-green-600">€@relatedDish.Price.ToString("F2")</span>
+                                </div>
+                                <p class="text-gray-600 text-sm">@(relatedDish.Description?.Length > 100 ? relatedDish.Description.Substring(0, 100) + "..." : relatedDish.Description)</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </section>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    
+    private SushiRoll? dish;
+    private List<SushiRoll>? relatedDishes;
+    private int quantity = 1;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDishDetails();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (dish?.Id != Id)
+        {
+            await LoadDishDetails();
+        }
+    }
+
+    private async Task LoadDishDetails()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var allDishes = await ApiService.GetMenuAsync();
+            dish = allDishes.FirstOrDefault(d => d.Id == Id);
+
+            if (dish != null)
+            {
+                // Load related dishes (same category or similar)
+                relatedDishes = allDishes
+                    .Where(d => d.Id != dish.Id && 
+                           (d.IsSignatureRoll == dish.IsSignatureRoll || 
+                            d.IsVegetarian == dish.IsVegetarian))
+                    .Take(6)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading dish details");
+            ToastService.ShowError("Error", "Failed to load dish details");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void IncreaseQuantity()
+    {
+        if (quantity < 10) quantity++;
+    }
+
+    private void DecreaseQuantity()
+    {
+        if (quantity > 1) quantity--;
+    }
+
+    private void AddToCart()
+    {
+        if (dish != null)
+        {
+            CartService.AddItem(dish, quantity);
+            ToastService.ShowSuccess("Success", $"Added {quantity} x {dish.Name} to cart!");
+            quantity = 1;
+        }
+    }
+} 
